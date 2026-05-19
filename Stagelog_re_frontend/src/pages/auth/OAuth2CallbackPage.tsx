@@ -14,32 +14,38 @@ const OAuth2CallbackPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const setAuth = useAuthStore((state) => state.setAuth);
-  const [error, setError] = useState<string | null>(null);
+
+  // URL ?error 파라미터는 동기적으로 읽을 수 있으므로 useState initializer로 처리한다
+  // (effect 안에서 setState 호출하는 패턴 회피).
+  const errorParam = searchParams.get('error');
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const error = errorParam ?? fetchError;
 
   useEffect(() => {
-    const errorParam = searchParams.get('error');
-
     if (errorParam) {
-      setError(errorParam);
-      setTimeout(() => navigate(ROUTES.LOGIN), 3000);
-      return;
+      const timer = setTimeout(() => navigate(ROUTES.LOGIN), 3000);
+      return () => clearTimeout(timer);
     }
 
     // 에러 없으면 refresh 호출로 accessToken 획득
+    let cancelled = false;
     const fetchToken = async () => {
       try {
         const response = await authAPI.refresh();
-        const { accessToken, userId, email, nickname } = response.data;
-        setAuth(accessToken, { userId, email, nickname });
+        const { accessToken, publicId, email, nickname } = response.data;
+        if (cancelled) return;
+        setAuth(accessToken, { publicId, email, nickname });
         navigate(ROUTES.HOME);
       } catch {
-        setError('소셜 로그인 처리 중 오류가 발생했습니다.');
+        if (cancelled) return;
+        setFetchError('소셜 로그인 처리 중 오류가 발생했습니다.');
         setTimeout(() => navigate(ROUTES.LOGIN), 3000);
       }
     };
 
     fetchToken();
-  }, [searchParams, setAuth, navigate]);
+    return () => { cancelled = true; };
+  }, [errorParam, setAuth, navigate]);
 
   return (
     <div className="min-h-screen bg-bg-deep flex items-center justify-center px-4 relative overflow-hidden">

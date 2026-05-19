@@ -21,8 +21,4 @@ export const authAPI = {
   /** 토큰 갱신 → HttpOnly 쿠키의 refreshToken으로 새 accessToken 발급 */
   refresh: () =>
     client.post<TokenResponse>(API_ENDPOINTS.AUTH.REFRESH),
-
-  /** userId 중복 확인 → true: 이미 존재, false: 사용 가능 */
-  checkUserId: (userId: string) =>
-    client.get<boolean>(API_ENDPOINTS.AUTH.CHECK_USERID, { params: { userId } }),
 };

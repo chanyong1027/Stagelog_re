@@ -16,8 +16,8 @@ export const useLogin = () => {
   return useMutation({
     mutationFn: (data: LoginRequest) => authAPI.login(data),
     onSuccess: (response) => {
-      const { accessToken, userId, email, nickname } = response.data;
-      setAuth(accessToken, { userId, email, nickname });
+      const { accessToken, publicId, email, nickname } = response.data;
+      setAuth(accessToken, { publicId, email, nickname });
       navigate(ROUTES.HOME);
     },
   });

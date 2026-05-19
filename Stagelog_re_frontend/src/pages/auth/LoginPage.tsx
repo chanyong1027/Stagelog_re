@@ -12,7 +12,7 @@ import { ROUTES, API_ENDPOINTS } from '../../utils/constants';
  */
 const LoginPage: React.FC = () => {
   const [formData, setFormData] = useState<LoginRequest>({
-    userId: '',
+    email: '',
     password: '',
   });
   const [loginError, setLoginError] = useState<string>('');
@@ -23,8 +23,8 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     setLoginError(''); // 에러 초기화
 
-    if (!formData.userId.trim()) {
-      setLoginError('아이디를 입력해주세요.');
+    if (!formData.email.trim()) {
+      setLoginError('이메일을 입력해주세요.');
       return;
     }
     if (!formData.password.trim()) {
@@ -34,7 +34,7 @@ const LoginPage: React.FC = () => {
 
     login(formData, {
       onError: () => {
-        setLoginError('ID/비밀번호 정보가 일치하지 않습니다.');
+        setLoginError('이메일/비밀번호 정보가 일치하지 않습니다.');
       },
     });
   };
@@ -92,11 +92,11 @@ const LoginPage: React.FC = () => {
           {/* 로그인 폼 */}
           <form onSubmit={handleSubmit} className="space-y-6">
             <Input
-              label="아이디"
-              type="text"
-              placeholder="아이디를 입력하세요"
-              value={formData.userId}
-              onChange={handleChange('userId')}
+              label="이메일"
+              type="email"
+              placeholder="example@email.com"
+              value={formData.email}
+              onChange={handleChange('email')}
               required
               disabled={isPending}
             />

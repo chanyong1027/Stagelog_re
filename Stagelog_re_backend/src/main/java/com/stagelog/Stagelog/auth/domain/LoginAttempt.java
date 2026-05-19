@@ -20,7 +20,7 @@ import lombok.NoArgsConstructor;
 @Table(
         name = "login_attempts",
         uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"user_id", "client_ip"})
+                @UniqueConstraint(columnNames = {"email", "client_ip"})
         }
 )
 public class LoginAttempt extends BaseEntity {
@@ -29,8 +29,8 @@ public class LoginAttempt extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id", nullable = false)
-    private String userId;
+    @Column(name = "email", nullable = false)
+    private String email;
 
     @Column(name = "client_ip", nullable = false, length = 64)
     private String clientIp;
@@ -44,9 +44,9 @@ public class LoginAttempt extends BaseEntity {
     @Column(name = "locked_until")
     private LocalDateTime lockedUntil;
 
-    public static LoginAttempt create(String userId, String clientIp, LocalDateTime failedAt) {
+    public static LoginAttempt create(String email, String clientIp, LocalDateTime failedAt) {
         LoginAttempt attempt = new LoginAttempt();
-        attempt.userId = userId;
+        attempt.email = email;
         attempt.clientIp = clientIp;
         attempt.failCount = 0;
         attempt.firstFailedAt = failedAt;

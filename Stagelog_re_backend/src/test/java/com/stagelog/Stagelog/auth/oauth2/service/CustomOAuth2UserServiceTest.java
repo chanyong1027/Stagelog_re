@@ -182,6 +182,32 @@ class CustomOAuth2UserServiceTest {
     // ── 신규 유저 정상 처리 ─────────────────────────────────────────────────
 
     @Test
+    @DisplayName("신규 KAKAO 유저는 consent 3컬럼이 NULL로 영속된다 (auto-set 금지)")
+    void new_kakao_user_is_persisted_with_null_consent_fields() {
+        OAuth2UserInfo userInfo = mock(OAuth2UserInfo.class);
+        when(userInfo.providerId()).thenReturn("kakao-consent");
+        when(userInfo.email()).thenReturn("k@b.com");
+        when(userInfo.provider()).thenReturn(Provider.KAKAO);
+        when(userInfo.nickname()).thenReturn("카카오닉");
+        when(userInfo.profileImageUrl()).thenReturn(null);
+
+        when(userService.findByEmail("k@b.com")).thenReturn(Optional.empty());
+        // 실제 User.createSocialUser를 통해 invariant 검증
+        User actual = User.createSocialUser("k@b.com", "카카오닉", null, Provider.KAKAO, "kakao-consent");
+        when(userService.getOrCreateUser("k@b.com", "카카오닉", null, Provider.KAKAO, "kakao-consent"))
+                .thenReturn(actual);
+
+        org.springframework.security.oauth2.core.user.OAuth2User result =
+                service.processUserInfo(userInfo, Map.of("id", 12345L), "id");
+
+        User persisted = ((CustomOAuth2User) result).getUser();
+        assertThat(persisted.getProvider()).isEqualTo(Provider.KAKAO);
+        assertThat(persisted.getAgeConfirmedAt()).isNull();
+        assertThat(persisted.getTermsAgreedAt()).isNull();
+        assertThat(persisted.getTermsVersion()).isNull();
+    }
+
+    @Test
     @DisplayName("신규 소셜 유저는 CustomOAuth2User로 래핑되어 반환된다")
     void processUserInfo_withNewUser_returnsCustomOAuth2User() {
         OAuth2UserInfo userInfo = mock(OAuth2UserInfo.class);

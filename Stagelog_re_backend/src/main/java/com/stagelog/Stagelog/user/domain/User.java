@@ -12,7 +12,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.util.UUID;
 import java.util.regex.Pattern;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -22,114 +23,135 @@ import org.hibernate.annotations.Check;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Check(constraints = "(social_provider_type = 'LOCAL' AND password IS NOT NULL) OR "
-        + "(social_provider_type <> 'LOCAL' AND password IS NULL)")
+@Check(constraints = "(provider = 'LOCAL' AND password IS NOT NULL) OR "
+                  + "(provider <> 'LOCAL' AND password IS NULL)")
 @Table(
-        name = "users",
-        uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"provider", "provider_id"})
-        }
+    name = "users",
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_user_provider_provider_id",
+                          columnNames = {"provider", "provider_id"})
+    }
 )
 public class User extends BaseEntity {
 
     private static final Pattern EMAIL_PATTERN =
-            Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+        Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true)
-    private String email;
+    @Column(name = "public_id", nullable = false, unique = true, updatable = false)
+    private UUID publicId;
 
-    @Column(unique = true, nullable = false, updatable = false)
-    private String userId;
+    @Column(nullable = false, unique = true)
+    private String email;
 
     @Column
     private String password;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private String nickname;
 
-    @Column(name = "profile_image_url")
+    @Column(length = 30, unique = true)
+    private String handle;
+
+    @Column(name = "profile_image_url", length = 500)
     private String profileImageUrl;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "social_provider_type", nullable = false)
+    @Column(nullable = false, length = 20)
     private Provider provider;
 
-    @Column(name = "provider_id")
+    @Column(name = "provider_id", length = 255)
     private String providerId;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "role_type", nullable = false)
+    @Column(name = "role_type", nullable = false, length = 20)
     private Role role;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "user_status", nullable = false)
+    @Column(name = "user_status", nullable = false, length = 20)
     private UserStatus status;
 
-    @Column(name = "last_login_at")
-    private LocalDateTime lastLoginAt;
+    @Column(name = "age_confirmed_at")
+    private OffsetDateTime ageConfirmedAt;
+
+    @Column(name = "terms_agreed_at")
+    private OffsetDateTime termsAgreedAt;
+
+    @Column(name = "terms_version", length = 20)
+    private String termsVersion;
 
     @Column(name = "email_notification_enabled", nullable = false)
     private Boolean emailNotificationEnabled;
 
-    @Column(name = "is_social", nullable = false)
-    private Boolean isSocial;
+    @Column(name = "last_login_at")
+    private OffsetDateTime lastLoginAt;
 
+    @Column(name = "deleted_at")
+    private OffsetDateTime deletedAt;
+
+    public static User createLocalUser(
+            String email, String encodedPassword, String nickname,
+            OffsetDateTime ageConfirmedAt, OffsetDateTime termsAgreedAt, String termsVersion) {
+        validateEmail(email);
+        validateEncodedPassword(encodedPassword);
+        validateNickname(nickname);
+        validateConsent(ageConfirmedAt, termsAgreedAt, termsVersion);
+
+        User u = new User();
+        u.publicId = UUID.randomUUID();
+        u.email = email;
+        u.password = encodedPassword;
+        u.nickname = nickname;
+        u.provider = Provider.LOCAL;
+        u.providerId = null;
+        u.role = Role.USER;
+        u.status = UserStatus.ACTIVE;
+        u.ageConfirmedAt = ageConfirmedAt;
+        u.termsAgreedAt = termsAgreedAt;
+        u.termsVersion = termsVersion;
+        u.emailNotificationEnabled = true;
+        return u;
+    }
+
+    /**
+     * MVP: 카카오 등 소셜 가입자는 consent를 수집하지 않는다.
+     *  age_confirmed_at / terms_agreed_at / terms_version 모두 NULL로 INSERT.
+     *  TODO v1.0: Kakao Sync 약관 동의 활용 또는 자체 1회 동의 화면 도입 결정.
+     */
     public static User createSocialUser(
-            String email,
-            String nickname,
-            String profileImageUrl,
-            Provider provider,
-            String providerId
-    ) {
+            String email, String nickname, String profileImageUrl,
+            Provider provider, String providerId) {
         validateEmail(email);
         validateNickname(nickname);
-        validateProvider(provider, providerId);
+        validateSocialProvider(provider, providerId);
 
-        User user = new User();
-        user.email = email;
-        user.userId = provider.name().toLowerCase() + "_" + providerId;
-        user.password = null;
-        user.nickname = nickname;
-        user.profileImageUrl = profileImageUrl;
-        user.provider = provider;
-        user.providerId = providerId;
-        user.role = Role.USER;
-        user.status = UserStatus.ACTIVE;
-        user.emailNotificationEnabled = true;
-        user.isSocial = true;
-        return user;
+        User u = new User();
+        u.publicId = UUID.randomUUID();
+        u.email = email;
+        u.password = null;
+        u.nickname = nickname;
+        u.profileImageUrl = profileImageUrl;
+        u.provider = provider;
+        u.providerId = providerId;
+        u.role = Role.USER;
+        u.status = UserStatus.ACTIVE;
+        u.ageConfirmedAt = null;
+        u.termsAgreedAt = null;
+        u.termsVersion = null;
+        u.emailNotificationEnabled = true;
+        return u;
     }
 
-    public static User createLocalUser(String userId, String encodedPassword, String nickname, String email) {
-        if (userId == null || userId.isBlank()) {
-            throw new InvalidInputException(ErrorCode.INVALID_INPUT_VALUE);
-        }
-        if (encodedPassword == null || encodedPassword.isBlank()) {
-            throw new InvalidInputException(ErrorCode.INVALID_INPUT_VALUE);
-        }
+    public void updateLastLoginAt(OffsetDateTime when) {
+        this.lastLoginAt = when;
+    }
+
+    public void changeNickname(String nickname) {
         validateNickname(nickname);
-        validateEmail(email);
-
-        User user = new User();
-        user.userId = userId;
-        user.password = encodedPassword;
-        user.nickname = nickname;
-        user.email = email;
-        user.provider = Provider.LOCAL;
-        user.providerId = userId;
-        user.role = Role.USER;
-        user.status = UserStatus.ACTIVE;
-        user.emailNotificationEnabled = true;
-        user.isSocial = false;
-        return user;
-    }
-
-    public void updateLastLoginAt() {
-        this.lastLoginAt = LocalDateTime.now();
+        this.nickname = nickname;
     }
 
     public void updateProfile(String nickname, String profileImageUrl, Boolean emailNotificationEnabled) {
@@ -145,17 +167,17 @@ public class User extends BaseEntity {
         }
     }
 
-    public void delete() {
+    public void markDeleted(OffsetDateTime when) {
         this.status = UserStatus.DELETED;
+        this.deletedAt = when;
     }
 
-    public void suspend() {
-        this.status = UserStatus.SUSPENDED;
+    public void delete() {
+        markDeleted(OffsetDateTime.now());
     }
 
-    public void activate() {
-        this.status = UserStatus.ACTIVE;
-    }
+    public void suspend()  { this.status = UserStatus.SUSPENDED; }
+    public void activate() { this.status = UserStatus.ACTIVE; }
 
     private static void validateEmail(String email) {
         if (email == null || !EMAIL_PATTERN.matcher(email).matches()) {
@@ -164,20 +186,33 @@ public class User extends BaseEntity {
     }
 
     private static void validateNickname(String nickname) {
-        if (nickname == null || nickname.isBlank()) {
-            throw new InvalidInputException(ErrorCode.INVALID_INPUT_VALUE);
-        }
-        if (nickname.length() < 2 || nickname.length() > 20) {
+        if (nickname == null || nickname.isBlank() || nickname.length() < 2 || nickname.length() > 20) {
             throw new InvalidInputException(ErrorCode.INVALID_INPUT_VALUE);
         }
     }
 
-    private static void validateProvider(Provider provider, String providerId) {
-        if (provider == null || providerId == null || providerId.isBlank()) {
+    private static void validateEncodedPassword(String encoded) {
+        if (encoded == null || encoded.isBlank()) {
             throw new InvalidInputException(ErrorCode.INVALID_INPUT_VALUE);
         }
-        if (provider == Provider.LOCAL) {
+    }
+
+    private static void validateSocialProvider(Provider provider, String providerId) {
+        if (provider == null || provider == Provider.LOCAL) {
             throw new InvalidInputException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        if (providerId == null || providerId.isBlank()) {
+            throw new InvalidInputException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+    }
+
+    private static void validateConsent(
+            OffsetDateTime ageConfirmedAt, OffsetDateTime termsAgreedAt, String termsVersion) {
+        if (ageConfirmedAt == null) {
+            throw new InvalidInputException(ErrorCode.AUTH_UNDER_AGE);
+        }
+        if (termsAgreedAt == null || termsVersion == null || termsVersion.isBlank()) {
+            throw new InvalidInputException(ErrorCode.AUTH_TERMS_NOT_AGREED);
         }
     }
 }

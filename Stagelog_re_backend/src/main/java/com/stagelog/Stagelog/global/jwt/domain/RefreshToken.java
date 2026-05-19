@@ -7,7 +7,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,29 +22,39 @@ public class RefreshToken extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
-    private String email;
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
 
-    @Column(name = "refresh_token_hash", nullable = false, length = 128)
-    private String refreshTokenHash;
+    @Column(name = "token_hash", nullable = false, unique = true, length = 128)
+    private String tokenHash;
 
-    @Column(name = "expiry_date", nullable = false)
-    private LocalDateTime expiryDate;
+    @Column(name = "issued_at", nullable = false)
+    private OffsetDateTime issuedAt;
 
-    public static RefreshToken create(String email, String refreshTokenHash, Long validityMillis) {
-        RefreshToken token = new RefreshToken();
-        token.email = email;
-        token.refreshTokenHash = refreshTokenHash;
-        token.expiryDate = LocalDateTime.now().plusSeconds(validityMillis / 1000);
-        return token;
+    @Column(name = "expires_at", nullable = false)
+    private OffsetDateTime expiresAt;
+
+    // 이하 3컬럼은 Task 3에서 의미 부여. Task 2 동안엔 항상 NULL.
+    @Column(name = "rotated_to_id")
+    private Long rotatedToId;
+
+    @Column(name = "revoked_at")
+    private OffsetDateTime revokedAt;
+
+    @Column(name = "revoked_reason", length = 50)
+    private String revokedReason;
+
+    public static RefreshToken issue(Long userId, String tokenHash,
+                                     OffsetDateTime issuedAt, OffsetDateTime expiresAt) {
+        RefreshToken t = new RefreshToken();
+        t.userId = userId;
+        t.tokenHash = tokenHash;
+        t.issuedAt = issuedAt;
+        t.expiresAt = expiresAt;
+        return t;
     }
 
-    public void rotate(String newRefreshTokenHash, Long validityMillis) {
-        this.refreshTokenHash = newRefreshTokenHash;
-        this.expiryDate = LocalDateTime.now().plusSeconds(validityMillis / 1000);
-    }
-
-    public boolean isExpired() {
-        return LocalDateTime.now().isAfter(this.expiryDate);
+    public boolean isExpired(OffsetDateTime now) {
+        return now.isAfter(this.expiresAt);
     }
 }

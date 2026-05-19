@@ -28,14 +28,9 @@ public class UserService {
             String providerId
     ) {
         return userRepository.findByProviderAndProviderId(provider, providerId)
-                .map(user -> {
-                    user.updateLastLoginAt();
-                    return user;
-                })
-                .orElseGet(() -> {
-                    User newUser = User.createSocialUser(email, nickname, profileImageUrl, provider, providerId);
-                    return userRepository.save(newUser);
-                });
+                .orElseGet(() -> userRepository.save(
+                        User.createSocialUser(email, nickname, profileImageUrl, provider, providerId)
+                ));
     }
 
     public Optional<User> findByEmail(String email) {

@@ -4,9 +4,11 @@ import com.stagelog.Stagelog.auth.dto.AuthTokenResult;
 import com.stagelog.Stagelog.global.jwt.JwtProperties;
 import com.stagelog.Stagelog.global.jwt.JwtTokenProvider;
 import com.stagelog.Stagelog.global.jwt.RefreshTokenHasher;
+import com.stagelog.Stagelog.global.jwt.domain.RefreshToken;
 import com.stagelog.Stagelog.global.jwt.repository.RefreshTokenRepository;
 import com.stagelog.Stagelog.user.domain.User;
-import java.time.LocalDateTime;
+import java.time.Duration;
+import java.time.OffsetDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,29 +30,22 @@ public class AuthTokenIssuer {
     private final RefreshTokenRepository refreshTokenRepository;
 
     /**
-     * 신규 토큰 발급: access + refresh 생성 → refresh 해시 → DB upsert.
+     * 신규 토큰 발급: access + refresh 생성 → refresh 해시 → DB INSERT (row-per-token).
      * 자체 로그인 및 OAuth2 성공 핸들러에서 사용한다.
      */
     @Transactional
     public AuthTokenResult issueFor(User user) {
-        String email = user.getEmail();
-        String role = user.getRole().getValue();
-
-        TokenPairWithHash pair = createTokenPair(email, role);
-
-        refreshTokenRepository.upsertByEmail(
-                email,
-                pair.refreshTokenHash(),
-                LocalDateTime.now().plusSeconds(jwtProperties.getRefreshTokenValidity() / 1000)
-        );
-
+        TokenPairWithHash pair = createTokenPair(user.getEmail(), user.getRole().getValue());
+        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime expiresAt = now.plus(Duration.ofMillis(jwtProperties.getRefreshTokenValidity()));
+        refreshTokenRepository.save(
+                RefreshToken.issue(user.getId(), pair.refreshTokenHash(), now, expiresAt));
         return AuthTokenResult.of(
                 pair.accessToken(),
                 pair.refreshToken(),
-                user.getId(),
-                email,
-                user.getNickname()
-        );
+                user.getPublicId().toString(),
+                user.getEmail(),
+                user.getNickname());
     }
 
     /**
