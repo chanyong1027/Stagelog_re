@@ -9,6 +9,7 @@ import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Date;
+import java.util.UUID;
 import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,7 +51,11 @@ public class JwtTokenProvider {
     private String createToken(String email, String role, String type, Long validity) {
         long now = System.currentTimeMillis();
 
+        // JWT iat/exp는 RFC 7519상 초 단위로 truncate된다.
+        // 같은 1초 안에 발급된 토큰이 완전히 동일해지지 않도록 jti(JWT ID)를 매번 UUID로 부여한다.
+        // → refresh_tokens.token_hash UNIQUE 충돌 방지 + 토큰 추적성(JTI revocation list 등) 확보.
         return Jwts.builder()
+                .id(UUID.randomUUID().toString())
                 .subject(email)
                 .claim("role", role)
                 .claim("type", type)

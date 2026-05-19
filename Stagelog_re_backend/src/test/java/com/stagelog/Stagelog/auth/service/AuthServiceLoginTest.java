@@ -17,14 +17,12 @@ import com.stagelog.Stagelog.global.exception.UnauthorizedException;
 import com.stagelog.Stagelog.global.jwt.JwtProperties;
 import com.stagelog.Stagelog.global.jwt.JwtTokenProvider;
 import com.stagelog.Stagelog.global.jwt.RefreshTokenHasher;
-import com.stagelog.Stagelog.global.jwt.domain.RefreshToken;
 import com.stagelog.Stagelog.global.jwt.repository.RefreshTokenRepository;
 import com.stagelog.Stagelog.user.domain.User;
 import com.stagelog.Stagelog.user.domain.UserStatus;
 import com.stagelog.Stagelog.user.repository.UserRepository;
 import java.time.OffsetDateTime;
 import java.util.Optional;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -186,34 +184,8 @@ class AuthServiceLoginTest {
         verify(loginAttemptService, never()).recordFailure("user@example.com", "127.0.0.1");
     }
 
-    @Test
-    @DisplayName("refresh(Task 2 simplified): 옛 토큰 row 삭제 후 새 토큰 발급한다")
-    void refresh_deletesOldRowAndIssuesNew() {
-        String oldRefreshToken = "old-refresh-token";
-        String oldRefreshHash = "old-refresh-hash";
-        Long userId = 42L;
-
-        RefreshToken stored = mock(RefreshToken.class);
-        User user = mock(User.class);
-
-        when(jwtTokenProvider.getTokenValidationResult(oldRefreshToken))
-                .thenReturn(JwtTokenProvider.TokenValidationResult.VALID);
-        when(jwtTokenProvider.isRefreshToken(oldRefreshToken)).thenReturn(true);
-        when(refreshTokenHasher.hash(oldRefreshToken)).thenReturn(oldRefreshHash);
-        when(refreshTokenRepository.findByTokenHash(oldRefreshHash)).thenReturn(Optional.of(stored));
-        when(stored.isExpired(any(OffsetDateTime.class))).thenReturn(false);
-        when(stored.getUserId()).thenReturn(userId);
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(user.getStatus()).thenReturn(UserStatus.ACTIVE);
-        AuthTokenResult expected = AuthTokenResult.of(
-                "new-access", "new-refresh", UUID.randomUUID().toString(),
-                "user@example.com", "tester");
-        when(authTokenIssuer.issueFor(user)).thenReturn(expected);
-
-        AuthTokenResult result = authService.refresh(oldRefreshToken);
-
-        assertThat(result).isEqualTo(expected);
-        verify(refreshTokenRepository).delete(stored);
-        verify(authTokenIssuer).issueFor(user);
-    }
+    // Task 3에서 refresh 동작이 simplified(delete+insert)에서 row-per-token rotation으로 진화함에 따라,
+    // 옛 동작을 mock으로 검증하던 refresh_deletesOldRowAndIssuesNew 테스트는 제거.
+    // 새 동작은 AuthServiceRefreshRotationTest가 통합 테스트로 더 신뢰성 있게 검증한다
+    // (rotation chain / reuse detection / logout markRevoked 3 case).
 }
