@@ -48,3 +48,14 @@ docs/
 refs/
 ### Claude ###
 claude/
+.claude/
+CLAUDE.md
+.AGENTS.md.bkup
+
+### Private project docs (개인 프로젝트 — 퍼블릭 레포 노출 안 함) ###
+_bmad-output/
+_bmad/
+code_review/
+Stagelog_re_backend/code_compare/
+
+.codex/
