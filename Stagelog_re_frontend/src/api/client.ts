@@ -71,9 +71,9 @@ client.interceptors.response.use(
         // 대기 중이던 요청들 재시도
         const queue = [...failedQueue];
         failedQueue = [];
-        queue.forEach(({ resolve, config }) => {
+        queue.forEach(({ resolve, reject, config }) => {
           config.headers.Authorization = `Bearer ${accessToken}`;
-          resolve(client(config));
+          client(config).then(resolve).catch(reject);
         });
 
         // 원래 요청 재시도

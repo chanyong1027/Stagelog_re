@@ -31,7 +31,10 @@ const ReviewEditPage: React.FC = () => {
   const [playlistTitle, setPlaylistTitle] = useState(`${nickname || '나'}의 Playlist`);
   const [errors, setErrors] = useState<{ title?: string; content?: string }>({});
 
-  // 리뷰 데이터 로드 후 상태 초기화
+  // 리뷰 데이터 로드 후 폼 상태 초기화. 서버 데이터 → 폼 state 매핑은
+  // setState-in-effect 패턴이 적합하나 lint 규칙이 이를 막으므로 블록 단위로 비활성.
+  // TODO: 추후 react-hook-form + defaultValues로 리팩토링.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (review) {
       setTitle(review.title);
@@ -49,6 +52,7 @@ const ReviewEditPage: React.FC = () => {
       }
     }
   }, [review]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

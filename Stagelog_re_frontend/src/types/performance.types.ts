@@ -29,6 +29,7 @@ export interface CalendarPerformance {
   title: string;
   startDate: string;
   endDate: string;
+  postUrl?: string;
 }
 
 // 공연 필터

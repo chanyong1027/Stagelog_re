@@ -43,14 +43,6 @@ const ReviewEditor: React.FC<ReviewEditorProps> = ({
     },
   });
 
-  // 이미지 추가 핸들러
-  const addImage = useCallback(() => {
-    const url = window.prompt('이미지 URL을 입력하세요:');
-    if (url && editor) {
-      editor.chain().focus().setImage({ src: url }).run();
-    }
-  }, [editor]);
-
   // 파일에서 이미지 업로드 (Base64)
   const uploadImage = useCallback(() => {
     const input = document.createElement('input');

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 // import { toast } from 'react-hot-toast';
 import { reviewAPI } from '../api/review.api';
 import { ReviewCreateRequest, ReviewUpdateRequest } from '../types/review.types';
-import { SUCCESS_MESSAGES, ROUTES } from '../utils/constants';
+import { ROUTES } from '../utils/constants';
 
 /**
  * 내 리뷰 목록 조회 Hook

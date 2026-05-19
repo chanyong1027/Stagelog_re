@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import { TrackRequest } from '../../types/review.types';
-import Input from '../common/Input';
-import Button from '../common/Button';
 
 interface ManualTrackAddProps {
   onAddTrack: (track: TrackRequest) => void;
