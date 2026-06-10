@@ -47,6 +47,11 @@ export const ROUTES = {
   HOME: '/',
   LOGIN: '/login',
   SIGNUP: '/signup',
+  // 신규 IA (5탭): 발견/공연/아티스트/일기장/나
+  SHOWS: '/shows',
+  ARTISTS: '/artists',
+  JOURNAL: '/journal',
+  // ↓ 레거시 라우트 (브라운필드 페이지용, 재설계 시 정리 예정)
   PERFORMANCES: '/performances',
   PERFORMANCE_DETAIL: (id: number) => `/performances/${id}`,
   CALENDAR: '/calendar',
