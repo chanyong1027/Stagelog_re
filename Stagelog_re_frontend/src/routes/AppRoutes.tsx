@@ -1,7 +1,28 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { ROUTES } from '../utils/constants';
+import { authBus } from '../api/authBus';
 import ProtectedRoute from './ProtectedRoute';
 import AppLayout from '../components/layout/AppLayout';
+
+/**
+ * API client(라우터 밖)에서 발행한 'session-expired'를 구독해 로그인으로 보낸다.
+ * 현재 위치를 state.from에 보존(로그인 후 복귀용). BrowserRouter 안에서만 동작.
+ */
+function SessionExpiredHandler() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(
+    () =>
+      authBus.on('session-expired', () => {
+        navigate(ROUTES.LOGIN, { state: { from: location }, replace: true });
+      }),
+    [navigate, location],
+  );
+
+  return null;
+}
 
 // Auth 페이지 (백엔드 완료 · 디자인 재작업은 후속 Task)
 import LoginPage from '../pages/auth/LoginPage';
@@ -29,6 +50,7 @@ function DummyPage({ title, note }: { title: string; note?: string }) {
 const AppRoutes: React.FC = () => {
   return (
     <BrowserRouter>
+      <SessionExpiredHandler />
       <Routes>
         {/* 앱 셸 (TopNav + BottomNav) */}
         <Route element={<AppLayout />}>

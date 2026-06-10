@@ -1,5 +1,6 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig, type AxiosResponse } from 'axios';
 import { STORAGE_KEYS, API_ENDPOINTS } from '../utils/constants';
+import { authBus } from './authBus';
 
 // Axios 인스턴스 생성
 const client = axios.create({
@@ -68,10 +69,11 @@ client.interceptors.response.use(
 
         localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
 
-        // 대기 중이던 요청들 재시도
+        // 대기 중이던 요청들 재시도 (_retry 설정으로 재시도 응답의 무한 refresh 루프 방어)
         const queue = [...failedQueue];
         failedQueue = [];
         queue.forEach(({ resolve, reject, config }) => {
+          (config as InternalAxiosRequestConfig & { _retry?: boolean })._retry = true;
           config.headers.Authorization = `Bearer ${accessToken}`;
           client(config).then(resolve).catch(reject);
         });
@@ -81,10 +83,10 @@ client.interceptors.response.use(
         return client(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError);
-        // refresh 실패 → 로그인 페이지로 이동
+        // refresh 실패 → 세션 만료. 하드 이동 대신 이벤트 발행(라우터 핸들러가 state.from 보존해 navigate)
         localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
         localStorage.removeItem(STORAGE_KEYS.USER_INFO);
-        window.location.href = '/login';
+        authBus.emit('session-expired');
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
