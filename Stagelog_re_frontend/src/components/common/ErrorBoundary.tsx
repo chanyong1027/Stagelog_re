@@ -1,48 +1,40 @@
-import { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, type ErrorInfo, type ReactNode } from 'react';
+import ErrorState from './ErrorState';
 
 interface Props {
   children: ReactNode;
+  onError?: (error: Error, errorInfo: ErrorInfo) => void;
 }
 
 interface State {
-  hasError: boolean;
   error: Error | null;
 }
 
+/**
+ * 전역 에러 경계. fallback은 ErrorState로 위임하고,
+ * '다시 시도'는 full reload 대신 boundary state만 reset한다.
+ */
 class ErrorBoundary extends Component<Props, State> {
   public state: State = {
-    hasError: false,
     error: null,
   };
 
   public static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    return { error };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    this.props.onError?.(error, errorInfo);
     console.error('Uncaught error:', error, errorInfo);
   }
 
+  private reset = () => {
+    this.setState({ error: null });
+  };
+
   public render() {
-    if (this.state.hasError) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-800 mb-4">
-              문제가 발생했습니다
-            </h1>
-            <p className="text-gray-600 mb-6">
-              페이지를 새로고침하거나 나중에 다시 시도해주세요.
-            </p>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark"
-            >
-              새로고침
-            </button>
-          </div>
-        </div>
-      );
+    if (this.state.error) {
+      return <ErrorState onRetry={this.reset} />;
     }
 
     return this.props.children;
