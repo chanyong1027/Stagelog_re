@@ -4,14 +4,14 @@
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
 
 @theme {
-  /* Capture mode (light) */
-  --color-capture-bg: oklch(0.98 0.005 240);
-  --color-capture-surface: oklch(1.00 0 0);
-  --color-capture-muted: oklch(0.96 0.004 240);
-  --color-capture-fg: oklch(0.20 0.012 240);
-  --color-capture-fg-muted: oklch(0.50 0.010 240);
-  --color-capture-accent: oklch(0.55 0.18 30);
-  --color-capture-ring: oklch(0.70 0.16 30);
+  /* Capture mode (light) — 확정 디자인: 중립 zinc 베이스 (주황 액센트 폐기) */
+  --color-capture-bg: oklch(0.99 0 0);
+  --color-capture-surface: oklch(0.975 0 0);
+  --color-capture-muted: oklch(0.92 0 0);
+  --color-capture-fg: oklch(0.18 0 0);
+  --color-capture-fg-muted: oklch(0.46 0 0);
+  --color-capture-accent: oklch(0.22 0 0);
+  --color-capture-ring: oklch(0.55 0 0);
 
   /* Curate mode (Cream / Wine) */
   --color-curate-bg: oklch(0.97 0.025 80);
