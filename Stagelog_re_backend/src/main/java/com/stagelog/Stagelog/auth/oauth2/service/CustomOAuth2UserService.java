@@ -63,7 +63,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         return new CustomOAuth2User(
                 user,
                 attributes,
-                List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name())),
+                List.of(new SimpleGrantedAuthority(user.getRole().getValue())),
                 nameAttributeKey
         );
     }
