@@ -1,5 +1,6 @@
 package com.stagelog.Stagelog.global.jwt;
 
+import com.stagelog.Stagelog.global.security.AuthUser;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -7,18 +8,12 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
-import jakarta.servlet.http.HttpServletRequest;
 import java.util.Date;
 import java.util.UUID;
 import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
 @Slf4j
 @Component
@@ -31,7 +26,6 @@ public class JwtTokenProvider {
     }
 
     private final JwtProperties jwtProperties;
-    private final UserDetailsService userDetailsService;
     private SecretKey secretKey;
 
     @PostConstruct
@@ -68,34 +62,12 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    public Authentication getAuthentication(String token) {
-        String email = getEmail(token);
-        UserDetails userDetails = userDetailsService.loadUserByUsername(email);
-        return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
-    }
-
-    public String getEmail(String token) {
-        return parseClaims(token).getSubject();
-    }
-
-    public String getRole(String token) {
-        return parseClaims(token).get("role", String.class);
-    }
-
-    public String getType(String token) {
+    private String getType(String token) {
         return parseClaims(token).get("type", String.class);
     }
 
     public boolean isAccessToken(String token) {
         return "access".equals(getType(token));
-    }
-
-    public boolean isRefreshToken(String token) {
-        return "refresh".equals(getType(token));
-    }
-
-    public boolean validateToken(String token) {
-        return getTokenValidationResult(token) == TokenValidationResult.VALID;
     }
 
     public TokenValidationResult getTokenValidationResult(String token) {
@@ -118,12 +90,16 @@ public class JwtTokenProvider {
         }
     }
 
-    public String resolveToken(HttpServletRequest request) {
-        String bearerToken = request.getHeader("Authorization");
-        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7);
-        }
-        return null;
+    /**
+     * 클레임만으로 principal 조립 — stateless 전환의 핵심 (DB 조회 없음).
+     * 호출 전 getTokenValidationResult()로 검증이 끝났다고 가정한다.
+     */
+    public AuthUser getAuthUser(String token) {
+        Claims claims = parseClaims(token);
+        return new AuthUser(
+                UUID.fromString(claims.get("pid", String.class)),
+                claims.getSubject(),
+                claims.get("role", String.class));
     }
 
     /**

@@ -34,7 +34,7 @@ class JwtTokenProviderTest {
         p.setRefreshTokenValidity(1209600000L);
         p.setIssuer(issuer);
         p.setAudience(audience);
-        JwtTokenProvider tp = new JwtTokenProvider(p, null);
+        JwtTokenProvider tp = new JwtTokenProvider(p);
         tp.init();
         return tp;
     }
@@ -47,7 +47,7 @@ class JwtTokenProviderTest {
         props.setRefreshTokenValidity(1209600000L);
         props.setIssuer("stagelog-test");
         props.setAudience("stagelog-api");
-        provider = new JwtTokenProvider(props, null);
+        provider = new JwtTokenProvider(props);
         provider.init();
     }
 
