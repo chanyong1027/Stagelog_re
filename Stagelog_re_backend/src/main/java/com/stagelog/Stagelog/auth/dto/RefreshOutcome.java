@@ -6,7 +6,7 @@ package com.stagelog.Stagelog.auth.dto;
  */
 public record RefreshOutcome(Status status, AuthTokenResult tokens) {
 
-    public enum Status { ROTATED, REUSED, EXPIRED, INVALID }
+    public enum Status { ROTATED, REUSED, EXPIRED, INVALID, BLOCKED }
 
     public static RefreshOutcome rotated(AuthTokenResult tokens) {
         return new RefreshOutcome(Status.ROTATED, tokens);
@@ -22,5 +22,9 @@ public record RefreshOutcome(Status status, AuthTokenResult tokens) {
 
     public static RefreshOutcome invalid() {
         return new RefreshOutcome(Status.INVALID, null);
+    }
+
+    public static RefreshOutcome blocked() {
+        return new RefreshOutcome(Status.BLOCKED, null);
     }
 }

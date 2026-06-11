@@ -6,6 +6,7 @@ import com.stagelog.Stagelog.auth.dto.RefreshOutcome;
 import com.stagelog.Stagelog.auth.dto.SignupRequest;
 import com.stagelog.Stagelog.global.config.TermsProperties;
 import com.stagelog.Stagelog.global.exception.DuplicateEntityException;
+import com.stagelog.Stagelog.global.exception.EntityNotFoundException;
 import com.stagelog.Stagelog.global.exception.ErrorCode;
 import com.stagelog.Stagelog.global.exception.InvalidInputException;
 import com.stagelog.Stagelog.global.exception.UnauthorizedException;
@@ -15,6 +16,7 @@ import com.stagelog.Stagelog.user.domain.UserStatus;
 import com.stagelog.Stagelog.user.repository.UserRepository;
 import java.time.OffsetDateTime;
 import java.util.Optional;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -92,6 +94,7 @@ public class AuthService {
             case REUSED -> throw new UnauthorizedException(ErrorCode.AUTH_REFRESH_REUSED);
             case EXPIRED -> throw new UnauthorizedException(ErrorCode.AUTH_REFRESH_EXPIRED);
             case INVALID -> throw new UnauthorizedException(ErrorCode.AUTH_REFRESH_INVALID);
+            case BLOCKED -> throw new UnauthorizedException(ErrorCode.AUTH_ACCOUNT_BLOCKED);
         };
     }
 
@@ -100,9 +103,11 @@ public class AuthService {
      *  delete가 아닌 이유: 감사 로그 + reuse detection 일관성(추후 옛 token 재사용 시도 시 chain 추적 가능).
      */
     @Transactional
-    public void logout(Long userId) {
+    public void logout(UUID publicId) {
+        User user = userRepository.findByPublicId(publicId)
+                .orElseThrow(() -> new EntityNotFoundException(ErrorCode.USER_NOT_FOUND));
         OffsetDateTime now = OffsetDateTime.now();
-        refreshTokenRepository.findAllByUserIdAndRevokedAtIsNull(userId)
+        refreshTokenRepository.findAllByUserIdAndRevokedAtIsNull(user.getId())
                 .forEach(t -> t.markRevoked("LOGOUT", now));
     }
 

@@ -63,8 +63,8 @@ public class RefreshTokenRotationService {
         User user = userRepository.findById(ownerId)
                 .orElseThrow(() -> new EntityNotFoundException(ErrorCode.USER_NOT_FOUND));
         if (user.getStatus() != UserStatus.ACTIVE) {
-            // 비활성 사용자: 방금 획득한 회전은 이미 ROTATED 마킹됨 → 재로그인 유도
-            return RefreshOutcome.invalid();
+            // 차단 유저: 방금 claim한 회전은 이미 ROTATED로 소모됨 → 같은 토큰 재시도는 REUSED 경로 (의도)
+            return RefreshOutcome.blocked();
         }
 
         OffsetDateTime expiresAt = now.plus(Duration.ofMillis(jwtProperties.getRefreshTokenValidity()));

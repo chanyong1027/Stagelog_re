@@ -66,6 +66,22 @@ class RefreshTokenRotationIntegrationTest {
         assertThat(refreshTokenRepository.findAllByUserIdAndRevokedAtIsNull(userId)).isEmpty();
     }
 
+    /** 차단(SUSPENDED) 유저의 rotate → BLOCKED. 토큰은 이미 claim되어 소모됨 (의도 — spec 3.3). */
+    @Test
+    void rotate_with_suspended_user_returns_blocked() {
+        OffsetDateTime now = OffsetDateTime.now();
+        String raw = "raw-refresh-token-blocked";
+        refreshTokenRepository.saveAndFlush(
+                RefreshToken.issue(userId, hasher.hash(raw), now, now.plusDays(14)));
+        User user = userRepository.findById(userId).orElseThrow();
+        user.suspend();
+        userRepository.saveAndFlush(user);
+
+        RefreshOutcome outcome = rotationService.rotate(raw, OffsetDateTime.now());
+
+        assertThat(outcome.status()).isEqualTo(RefreshOutcome.Status.BLOCKED);
+    }
+
     /** 같은 토큰 동시 2건 → 정확히 하나만 ROTATED, 나머지는 ROTATED 아님(경합 패배=REUSED). */
     @Test
     void concurrent_rotation_of_same_token_allows_only_one_winner() throws Exception {

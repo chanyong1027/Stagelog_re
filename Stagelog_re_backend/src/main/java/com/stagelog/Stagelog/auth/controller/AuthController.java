@@ -8,7 +8,7 @@ import com.stagelog.Stagelog.auth.dto.TokenResponse;
 import com.stagelog.Stagelog.auth.service.AuthService;
 import com.stagelog.Stagelog.global.exception.ErrorCode;
 import com.stagelog.Stagelog.global.exception.UnauthorizedException;
-import com.stagelog.Stagelog.global.security.CustomUserDetails;
+import com.stagelog.Stagelog.global.security.AuthUser;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -61,10 +61,10 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @AuthenticationPrincipal AuthUser authUser,
             HttpServletResponse response
     ) {
-        authService.logout(userDetails.getUser().getId());
+        authService.logout(authUser.publicId());
         refreshTokenCookieManager.expireRefreshTokenCookie(response);
         return ResponseEntity.noContent().build();
     }

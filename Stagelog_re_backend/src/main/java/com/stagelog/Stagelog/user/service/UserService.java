@@ -8,6 +8,7 @@ import com.stagelog.Stagelog.user.dto.UserProfileResponse;
 import com.stagelog.Stagelog.user.dto.UserUpdateRequest;
 import com.stagelog.Stagelog.user.repository.UserRepository;
 import java.util.Optional;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,14 +43,19 @@ public class UserService {
                 .orElseThrow(() -> new EntityNotFoundException(ErrorCode.USER_NOT_FOUND));
     }
 
-    public UserProfileResponse getMyProfile(Long userId) {
-        User user = getUserById(userId);
+    public User getUserByPublicId(UUID publicId) {
+        return userRepository.findByPublicId(publicId)
+                .orElseThrow(() -> new EntityNotFoundException(ErrorCode.USER_NOT_FOUND));
+    }
+
+    public UserProfileResponse getMyProfile(UUID publicId) {
+        User user = getUserByPublicId(publicId);
         return UserProfileResponse.from(user);
     }
 
     @Transactional
-    public UserProfileResponse updateProfile(Long userId, UserUpdateRequest request) {
-        User user = getUserById(userId);
+    public UserProfileResponse updateProfile(UUID publicId, UserUpdateRequest request) {
+        User user = getUserByPublicId(publicId);
         user.updateProfile(
                 request.getNickname(),
                 request.getProfileImageUrl(),
@@ -59,8 +65,8 @@ public class UserService {
     }
 
     @Transactional
-    public void deleteUser(Long userId) {
-        User user = getUserById(userId);
+    public void deleteUser(UUID publicId) {
+        User user = getUserByPublicId(publicId);
         user.delete();
     }
 

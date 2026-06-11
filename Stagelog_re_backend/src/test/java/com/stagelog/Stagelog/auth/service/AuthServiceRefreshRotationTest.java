@@ -94,11 +94,22 @@ class AuthServiceRefreshRotationTest {
                 "127.0.0.2");
 
         // when
-        authService.logout(savedUser.getId());
+        authService.logout(savedUser.getPublicId());
 
         // then — 모든 row가 LOGOUT 사유로 폐기, delete 아님(이력 보존)
         var rows = refreshTokenRepository.findAllByUserIdOrderByIdAsc(savedUser.getId());
         assertThat(rows).allMatch(t -> "LOGOUT".equals(t.getRevokedReason()));
         assertThat(rows).isNotEmpty();
+    }
+
+    @Test
+    void refresh_with_suspended_user_throws_account_blocked() {
+        savedUser.suspend();
+        userRepository.saveAndFlush(savedUser);
+
+        assertThatThrownBy(() -> authService.refresh(initialRaw))
+                .isInstanceOf(UnauthorizedException.class)
+                .satisfies(e -> assertThat(((UnauthorizedException) e).getErrorCode())
+                        .isEqualTo(ErrorCode.AUTH_ACCOUNT_BLOCKED));
     }
 }
