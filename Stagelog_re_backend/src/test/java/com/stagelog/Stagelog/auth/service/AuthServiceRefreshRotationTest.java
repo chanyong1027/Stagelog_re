@@ -72,17 +72,18 @@ class AuthServiceRefreshRotationTest {
     }
 
     @Test
-    void refresh_reuse_of_old_token_revokes_all_user_tokens() {
+    void refresh_reuse_of_old_token_returns_reuse_error() {
         // given — 1차 rotation 성공
         authService.refresh(initialRaw);
 
-        // when / then — 옛 토큰 재사용 시도 → AUTH_REFRESH_REUSED + 모든 활성 토큰 폐기
+        // when / then — 옛 토큰 재사용 시도 → AUTH_REFRESH_REUSED
         assertThatThrownBy(() -> authService.refresh(initialRaw))
                 .isInstanceOf(UnauthorizedException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.AUTH_REFRESH_REUSED);
 
-        var rows = refreshTokenRepository.findAllByUserIdOrderByIdAsc(savedUser.getId());
-        assertThat(rows).allMatch(t -> t.getRevokedAt() != null);
+        // reuse 후 영속(family 폐기)의 롤백/커밋 경계 검증은 비-@Transactional 통합 테스트
+        // (RefreshTokenRotationIntegrationTest)가 권위를 가진다. @Transactional 단위 테스트는
+        // 커밋 경계를 재현 못 하므로 영속 단언을 중복으로 두지 않고 예외 매핑만 검증한다.
     }
 
     @Test

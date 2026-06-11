@@ -14,9 +14,6 @@ import com.stagelog.Stagelog.auth.dto.LoginRequest;
 import com.stagelog.Stagelog.global.config.TermsProperties;
 import com.stagelog.Stagelog.global.exception.ErrorCode;
 import com.stagelog.Stagelog.global.exception.UnauthorizedException;
-import com.stagelog.Stagelog.global.jwt.JwtProperties;
-import com.stagelog.Stagelog.global.jwt.JwtTokenProvider;
-import com.stagelog.Stagelog.global.jwt.RefreshTokenHasher;
 import com.stagelog.Stagelog.global.jwt.repository.RefreshTokenRepository;
 import com.stagelog.Stagelog.user.domain.User;
 import com.stagelog.Stagelog.user.domain.UserStatus;
@@ -37,10 +34,6 @@ class AuthServiceLoginTest {
     @Mock
     private UserRepository userRepository;
     @Mock
-    private JwtTokenProvider jwtTokenProvider;
-    @Mock
-    private RefreshTokenHasher refreshTokenHasher;
-    @Mock
     private RefreshTokenRepository refreshTokenRepository;
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -49,24 +42,21 @@ class AuthServiceLoginTest {
     @Mock
     private AuthTokenIssuer authTokenIssuer;
     @Mock
+    private RefreshTokenRotationService rotationService;
+    @Mock
     private TermsProperties termsProperties;
 
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
-        JwtProperties jwtProperties = new JwtProperties();
-        jwtProperties.setAccessTokenValidity(3600000L);
-        jwtProperties.setRefreshTokenValidity(1209600000L);
         authService = new AuthService(
                 userRepository,
-                jwtTokenProvider,
-                jwtProperties,
-                refreshTokenHasher,
                 refreshTokenRepository,
                 passwordEncoder,
                 loginAttemptService,
                 authTokenIssuer,
+                rotationService,
                 termsProperties
         );
     }

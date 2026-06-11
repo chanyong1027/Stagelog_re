@@ -2,19 +2,14 @@ package com.stagelog.Stagelog.auth.service;
 
 import com.stagelog.Stagelog.auth.dto.AuthTokenResult;
 import com.stagelog.Stagelog.auth.dto.LoginRequest;
+import com.stagelog.Stagelog.auth.dto.RefreshOutcome;
 import com.stagelog.Stagelog.auth.dto.SignupRequest;
 import com.stagelog.Stagelog.global.config.TermsProperties;
 import com.stagelog.Stagelog.global.exception.DuplicateEntityException;
-import com.stagelog.Stagelog.global.exception.EntityNotFoundException;
 import com.stagelog.Stagelog.global.exception.ErrorCode;
 import com.stagelog.Stagelog.global.exception.InvalidInputException;
 import com.stagelog.Stagelog.global.exception.UnauthorizedException;
-import com.stagelog.Stagelog.global.jwt.JwtProperties;
-import com.stagelog.Stagelog.global.jwt.JwtTokenProvider;
-import com.stagelog.Stagelog.global.jwt.RefreshTokenHasher;
-import com.stagelog.Stagelog.global.jwt.domain.RefreshToken;
 import com.stagelog.Stagelog.global.jwt.repository.RefreshTokenRepository;
-import java.time.Duration;
 import com.stagelog.Stagelog.user.domain.User;
 import com.stagelog.Stagelog.user.domain.UserStatus;
 import com.stagelog.Stagelog.user.repository.UserRepository;
@@ -31,13 +26,11 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class AuthService {
     private final UserRepository userRepository;
-    private final JwtTokenProvider jwtTokenProvider;
-    private final JwtProperties jwtProperties;
-    private final RefreshTokenHasher refreshTokenHasher;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final LoginAttemptService loginAttemptService;
     private final AuthTokenIssuer authTokenIssuer;
+    private final RefreshTokenRotationService rotationService;
     private final TermsProperties termsProperties;
 
     @Transactional
@@ -83,71 +76,23 @@ public class AuthService {
     }
 
     /**
-     * Refresh token rotation + reuse detection.
+     * Refresh token rotation. 실제 회전/폐기는 RefreshTokenRotationService(단일 트랜잭션)에 위임하고,
+     * 본 메서드는 결과를 HTTP 예외로 매핑하는 얇은 경계(비트랜잭션)다.
      *
-     * 정상 흐름: 옛 row를 markRotated("ROTATED")로 폐기 + 새 row INSERT + rotated_to_id 연결.
-     *
-     * Reuse detection: 이미 rotate(또는 revoke)된 토큰을 다시 사용하려는 시도는 탈취 의심 신호로 본다.
-     *  → user의 모든 활성 토큰을 "REUSED"로 일괄 폐기 + AUTH_REFRESH_REUSED throw.
-     *
-     * EXPIRED/INVALID 분기는 JWT 자체 검증 결과(getTokenValidationResult)를 우선 사용한다
-     *  — validateToken()(boolean) 한 가지로 묶으면 EXPIRED와 INVALID를 구분할 수 없기 때문.
+     * <p>회전 권한은 RotationService의 조건부 원자 UPDATE로 획득하고, 폐기는 같은 트랜잭션에서 커밋된다.
+     * throw가 트랜잭션 밖이라 재사용 폐기를 롤백하지 않는다. (ADR-0005 Update 2026-06-12)
      */
-    @Transactional
     public AuthTokenResult refresh(String refreshTokenValue) {
         if (!StringUtils.hasText(refreshTokenValue)) {
             throw new UnauthorizedException(ErrorCode.AUTH_REFRESH_INVALID);
         }
-        JwtTokenProvider.TokenValidationResult result =
-                jwtTokenProvider.getTokenValidationResult(refreshTokenValue);
-        OffsetDateTime now = OffsetDateTime.now();
-
-        if (result == JwtTokenProvider.TokenValidationResult.EXPIRED) {
-            // JWT 자체 만료 — DB row가 살아 있으면 EXPIRED revoke + throw
-            String hash = refreshTokenHasher.hash(refreshTokenValue);
-            refreshTokenRepository.findByTokenHash(hash).ifPresent(stored -> {
-                if (!stored.isRevoked()) {
-                    stored.markRevoked("EXPIRED", now);
-                }
-            });
-            throw new UnauthorizedException(ErrorCode.AUTH_REFRESH_EXPIRED);
-        }
-        if (result == JwtTokenProvider.TokenValidationResult.INVALID
-                || !jwtTokenProvider.isRefreshToken(refreshTokenValue)) {
-            throw new UnauthorizedException(ErrorCode.AUTH_REFRESH_INVALID);
-        }
-
-        String hash = refreshTokenHasher.hash(refreshTokenValue);
-        RefreshToken stored = refreshTokenRepository.findByTokenHash(hash)
-                .orElseThrow(() -> new UnauthorizedException(ErrorCode.AUTH_REFRESH_INVALID));
-
-        // 탈취 의심: 이미 ROTATED 또는 REVOKED된 토큰 재사용 → 전체 user 세션 폐기
-        if (stored.isRotated() || stored.isRevoked()) {
-            refreshTokenRepository.findAllByUserIdAndRevokedAtIsNull(stored.getUserId())
-                    .forEach(t -> t.markRevoked("REUSED", now));
-            throw new UnauthorizedException(ErrorCode.AUTH_REFRESH_REUSED);
-        }
-        // DB expires_at이 JWT exp보다 짧게 설정된 비대칭 케이스 방어 (보통 위에서 잡힘)
-        if (stored.isExpired(now)) {
-            stored.markRevoked("EXPIRED", now);
-            throw new UnauthorizedException(ErrorCode.AUTH_REFRESH_EXPIRED);
-        }
-
-        User user = userRepository.findById(stored.getUserId())
-                .orElseThrow(() -> new EntityNotFoundException(ErrorCode.USER_NOT_FOUND));
-        assertActiveUser(user);
-
-        // 새 토큰 발급 + 옛 row를 markRotated로 chain 연결
-        OffsetDateTime expiresAt = now.plus(Duration.ofMillis(jwtProperties.getRefreshTokenValidity()));
-        TokenPairWithHash pair = authTokenIssuer.createTokenPair(user.getEmail(), user.getRole().getValue());
-        RefreshToken newRow = refreshTokenRepository.save(
-                RefreshToken.issue(user.getId(), pair.refreshTokenHash(), now, expiresAt));
-        stored.markRotated(newRow.getId(), now);
-
-        // 외부 응답엔 publicId만 — 내부 PK 절대 노출 금지
-        return AuthTokenResult.of(
-                pair.accessToken(), pair.refreshToken(),
-                user.getPublicId().toString(), user.getEmail(), user.getNickname());
+        RefreshOutcome outcome = rotationService.rotate(refreshTokenValue, OffsetDateTime.now());
+        return switch (outcome.status()) {
+            case ROTATED -> outcome.tokens();
+            case REUSED -> throw new UnauthorizedException(ErrorCode.AUTH_REFRESH_REUSED);
+            case EXPIRED -> throw new UnauthorizedException(ErrorCode.AUTH_REFRESH_EXPIRED);
+            case INVALID -> throw new UnauthorizedException(ErrorCode.AUTH_REFRESH_INVALID);
+        };
     }
 
     /**
