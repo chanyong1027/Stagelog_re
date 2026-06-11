@@ -40,15 +40,15 @@ public class JwtTokenProvider {
         this.secretKey = Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String createAccessToken(String email, String role) {
-        return createToken(email, role, "access", jwtProperties.getAccessTokenValidity());
+    public String createAccessToken(String email, String role, UUID publicId) {
+        return createToken(email, role, "access", jwtProperties.getAccessTokenValidity(), publicId);
     }
 
-    public String createRefreshToken(String email, String role) {
-        return createToken(email, role, "refresh", jwtProperties.getRefreshTokenValidity());
+    public String createRefreshToken(String email, String role, UUID publicId) {
+        return createToken(email, role, "refresh", jwtProperties.getRefreshTokenValidity(), publicId);
     }
 
-    private String createToken(String email, String role, String type, Long validity) {
+    private String createToken(String email, String role, String type, Long validity, UUID publicId) {
         long now = System.currentTimeMillis();
 
         // JWT iat/exp는 RFC 7519상 초 단위로 truncate된다.
@@ -57,8 +57,11 @@ public class JwtTokenProvider {
         return Jwts.builder()
                 .id(UUID.randomUUID().toString())
                 .subject(email)
+                .claim("pid", publicId.toString())
                 .claim("role", role)
                 .claim("type", type)
+                .issuer(jwtProperties.getIssuer())
+                .audience().add(jwtProperties.getAudience()).and()
                 .issuedAt(new Date(now))
                 .expiration(new Date(now + validity))
                 .signWith(secretKey)
@@ -97,12 +100,19 @@ public class JwtTokenProvider {
 
     public TokenValidationResult getTokenValidationResult(String token) {
         try {
-            Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token);
+            Jwts.parser()
+                    .verifyWith(secretKey)
+                    .requireIssuer(jwtProperties.getIssuer())
+                    .requireAudience(jwtProperties.getAudience())
+                    .build()
+                    .parseSignedClaims(token);
             return TokenValidationResult.VALID;
         } catch (ExpiredJwtException e) {
             log.info("만료된 JWT 토큰입니다.");
             return TokenValidationResult.EXPIRED;
         } catch (JwtException | IllegalArgumentException e) {
+            // iss/aud 불일치(IncorrectClaimException)·부재(MissingClaimException)도
+            // JwtException 하위이므로 여기서 INVALID로 처리된다.
             log.info("유효하지 않은 JWT 토큰입니다.");
             return TokenValidationResult.INVALID;
         }
@@ -116,6 +126,11 @@ public class JwtTokenProvider {
         return null;
     }
 
+    /**
+     * 클레임 추출 전용 — require(iss/aud) 검증을 일부러 넣지 않는다.
+     * 필터 흐름상 getTokenValidationResult()의 검증이 항상 선행하며,
+     * 여기 추가하면 IncorrectClaimException 처리가 중복된다.
+     */
     private Claims parseClaims(String token) {
         try {
             return Jwts.parser().verifyWith(secretKey).build()

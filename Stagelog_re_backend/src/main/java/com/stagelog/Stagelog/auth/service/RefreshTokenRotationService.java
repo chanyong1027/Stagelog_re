@@ -68,7 +68,8 @@ public class RefreshTokenRotationService {
         }
 
         OffsetDateTime expiresAt = now.plus(Duration.ofMillis(jwtProperties.getRefreshTokenValidity()));
-        TokenPairWithHash pair = authTokenIssuer.createTokenPair(user.getEmail(), user.getRole().getValue());
+        TokenPairWithHash pair = authTokenIssuer.createTokenPair(
+                user.getEmail(), user.getRole().getValue(), user.getPublicId());
         RefreshToken newRow = refreshTokenRepository.save(
                 RefreshToken.issue(user.getId(), pair.refreshTokenHash(), now, expiresAt));
         refreshTokenRepository.linkRotatedTo(hash, newRow.getId());

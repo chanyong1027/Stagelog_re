@@ -9,6 +9,7 @@ import com.stagelog.Stagelog.global.jwt.repository.RefreshTokenRepository;
 import com.stagelog.Stagelog.user.domain.User;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,7 +36,7 @@ public class AuthTokenIssuer {
      */
     @Transactional
     public AuthTokenResult issueFor(User user) {
-        TokenPairWithHash pair = createTokenPair(user.getEmail(), user.getRole().getValue());
+        TokenPairWithHash pair = createTokenPair(user.getEmail(), user.getRole().getValue(), user.getPublicId());
         OffsetDateTime now = OffsetDateTime.now();
         OffsetDateTime expiresAt = now.plus(Duration.ofMillis(jwtProperties.getRefreshTokenValidity()));
         refreshTokenRepository.save(
@@ -53,9 +54,9 @@ public class AuthTokenIssuer {
      * {@code AuthService.refresh()}의 rotation 헬퍼 — package-private.
      * 외부에서 직접 호출 금지: 반드시 {@link #issueFor(User)}를 사용할 것.
      */
-    TokenPairWithHash createTokenPair(String email, String role) {
-        String accessToken = jwtTokenProvider.createAccessToken(email, role);
-        String refreshToken = jwtTokenProvider.createRefreshToken(email, role);
+    TokenPairWithHash createTokenPair(String email, String role, UUID publicId) {
+        String accessToken = jwtTokenProvider.createAccessToken(email, role, publicId);
+        String refreshToken = jwtTokenProvider.createRefreshToken(email, role, publicId);
         String refreshTokenHash = refreshTokenHasher.hash(refreshToken);
         return new TokenPairWithHash(accessToken, refreshToken, refreshTokenHash);
     }
