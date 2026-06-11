@@ -7,6 +7,7 @@ import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Slf4j
 @RestControllerAdvice
@@ -57,6 +58,19 @@ public class GlobalExceptionHandler {
         ErrorResponse response = ErrorResponse.of(ErrorCode.INVALID_INPUT_VALUE, e.getBindingResult().getFieldErrors());
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
+                .body(response);
+    }
+
+    /**
+     * 존재하지 않는 경로 (미매핑 URL·정적 리소스 부재) — 404.
+     * 이 핸들러가 없으면 아래 catch-all(Exception → 500)이 NoResourceFoundException을
+     * 가로채 모든 오타 URL이 500 + error 로그로 응답된다. (stateless 전환 E2E가 발견)
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    protected ResponseEntity<ErrorResponse> handleNoResourceFound(NoResourceFoundException e) {
+        ErrorResponse response = ErrorResponse.of(ErrorCode.RESOURCE_NOT_FOUND);
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
                 .body(response);
     }
 
