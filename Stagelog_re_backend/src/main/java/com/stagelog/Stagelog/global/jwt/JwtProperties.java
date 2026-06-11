@@ -14,6 +14,6 @@ public class JwtProperties {
     private Long accessTokenValidity;
     private Long refreshTokenValidity;
     private String refreshTokenPepper;
-
-
+    private String issuer;
+    private String audience;
 }

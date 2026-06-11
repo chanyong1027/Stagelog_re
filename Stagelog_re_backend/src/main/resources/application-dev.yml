@@ -7,3 +7,6 @@ spring:
     clean-disabled: false
   jpa:
     show-sql: true
+
+jwt:
+  issuer: stagelog-dev

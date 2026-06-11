@@ -60,8 +60,10 @@ external:
 jwt:
   secret: ${JWT_SECRET}
   refresh-token-pepper: ${JWT_REFRESH_PEPPER}
-  access-token-validity: 3600000      # 1시간
+  access-token-validity: 900000       # 15분 (NFR10 15~30분 — ADR 2026-06-10에서 15분 확정)
   refresh-token-validity: 1209600000  # 14일
+  issuer: stagelog-local              # 프로파일별 override — dev/prod yml 참조
+  audience: stagelog-api
 
 app:
   cors:
