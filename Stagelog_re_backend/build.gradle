@@ -14,6 +14,11 @@ java {
     }
 }
 
+// bootJar(실행 가능 jar)만 생성 — plain jar는 Docker COPY 시 *.jar 글롭 충돌을 일으키므로 끈다.
+jar {
+    enabled = false
+}
+
 configurations {
     compileOnly {
         extendsFrom annotationProcessor
