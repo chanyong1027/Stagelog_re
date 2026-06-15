@@ -72,3 +72,17 @@ app:
     frontend-redirect-uri: ${FRONTEND_REDIRECT_URI}
   terms:
     current-version: "2026-05-16"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health          # health만 노출 — 정보 누출 방지
+  endpoint:
+    health:
+      show-details: never        # 상세(빈/디스크 등) 비노출
+      probes:
+        enabled: true            # liveness/readiness 그룹 활성
+      group:
+        readiness:
+          include: readinessState,db   # 배포 게이트(readiness)에 RDS 연결 포함 (기본 readiness엔 db 없음)

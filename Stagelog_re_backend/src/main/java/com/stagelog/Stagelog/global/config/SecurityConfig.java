@@ -83,7 +83,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/**", "/api/performances/**", "/api/migration/**",
                                 "/performance-admin.html",
-                                "/oauth2/**", "/login/oauth2/**"
+                                "/oauth2/**", "/login/oauth2/**",
+                                "/actuator/health", "/actuator/health/**"
                         ).permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
