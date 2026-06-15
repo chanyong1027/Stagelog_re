@@ -1,0 +1,30 @@
+services:
+  backend:
+    image: ${BACKEND_IMAGE}
+    env_file:
+      - path: .env.backend    # 컨테이너 런타임 시크릿 (deploy/.env.backend)
+        required: false       # Compose 2.24+ — 파일 없어도 config/parse 통과. 실제 미존재 시 Spring이 ${...} 미해결로 startup fail-fast(이중 안전망)
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    networks: [ stagelog ]
+
+  frontend:
+    image: ${FRONTEND_IMAGE}
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"               # TLS 종단은 E단계(별도 plan)에서 결정
+    restart: unless-stopped
+    networks: [ stagelog ]
+
+networks:
+  stagelog:
+    driver: bridge
