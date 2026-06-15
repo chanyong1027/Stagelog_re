@@ -1,3 +1,4 @@
+// src/components/common/Input.tsx
 import React from 'react';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -7,70 +8,41 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 /**
- * 입력 필드 컴포넌트 - Neon Night 테마
- * 다크 배경 + 글로우 포커스 효과
+ * 입력 필드 — 중립(Capture) 디자인. 높이 54px, 라운드 14px, 포커스 시 capture-accent 링.
  */
-const Input: React.FC<InputProps> = ({
-  label,
-  error,
-  helperText,
-  className = '',
-  ...props
-}) => {
+const Input: React.FC<InputProps> = ({ label, error, helperText, className = '', id, ...props }) => {
+  const inputId = id ?? props.name;
   return (
-    <div className="space-y-2">
-      {/* 라벨 */}
+    <div>
       {label && (
-        <label className="block text-sm font-medium text-text-secondary">
+        <label htmlFor={inputId} className="mb-2 block text-[13px] font-semibold tracking-[-0.01em] text-capture-fg">
           {label}
         </label>
       )}
-
-      {/* 입력 필드 컨테이너 */}
-      <div className="relative group">
-        <input
-          className={`
-            w-full px-4 py-3
-            bg-bg-surface text-text-primary
-            border rounded-xl
-            placeholder:text-text-muted
-            transition-all duration-300
-            focus:outline-none
-            ${error
-              ? 'border-red-500/50 focus:border-red-500 focus:ring-2 focus:ring-red-500/20'
-              : 'border-border hover:border-border-light focus:border-primary focus:ring-2 focus:ring-primary/20'
-            }
-            ${props.disabled ? 'opacity-50 cursor-not-allowed' : ''}
-            ${className}
-          `}
-          {...props}
-        />
-
-        {/* 포커스 시 글로우 효과 */}
-        <div className={`
-          absolute inset-0 -z-10 rounded-xl opacity-0 transition-opacity duration-300
-          group-focus-within:opacity-100
-          ${error
-            ? 'bg-red-500/10 blur-xl'
-            : 'bg-primary/10 blur-xl'
-          }
-        `} />
-      </div>
-
-      {/* 에러 메시지 */}
+      <input
+        id={inputId}
+        aria-invalid={!!error}
+        className={
+          'h-[54px] w-full rounded-[14px] border bg-capture-surface px-4 text-[15px] text-capture-fg ' +
+          'placeholder:text-capture-fg-muted/60 transition-colors focus:outline-none focus:bg-capture-bg ' +
+          (error
+            ? 'border-error focus:border-error focus:ring-2 focus:ring-error/15 '
+            : 'border-capture-muted focus:border-capture-accent focus:ring-2 focus:ring-capture-accent/15 ') +
+          (props.disabled ? 'opacity-50 cursor-not-allowed ' : '') +
+          className
+        }
+        {...props}
+      />
       {error && (
-        <p className="flex items-center gap-1.5 text-sm text-red-400">
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+        <p className="mt-[7px] flex items-center gap-1.5 text-[12.5px] text-error">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 8v5M12 16.5v.01" />
           </svg>
           {error}
         </p>
       )}
-
-      {/* 도움말 텍스트 */}
-      {helperText && !error && (
-        <p className="text-sm text-text-muted">{helperText}</p>
-      )}
+      {helperText && !error && <p className="mt-[7px] text-[12.5px] text-capture-fg-muted">{helperText}</p>}
     </div>
   );
 };
