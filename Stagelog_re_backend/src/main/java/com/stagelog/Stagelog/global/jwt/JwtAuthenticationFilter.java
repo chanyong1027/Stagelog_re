@@ -1,6 +1,7 @@
 package com.stagelog.Stagelog.global.jwt;
 
 import com.stagelog.Stagelog.global.security.AuthUser;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -55,11 +56,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        JwtTokenProvider.TokenValidationResult result = jwtTokenProvider.getTokenValidationResult(token);
-        if (result != JwtTokenProvider.TokenValidationResult.VALID) {
+        JwtTokenProvider.TokenInspection inspection = jwtTokenProvider.inspect(token);
+        if (inspection.result() != JwtTokenProvider.TokenValidationResult.VALID) {
             request.setAttribute(
                     TOKEN_ERROR_CODE_ATTRIBUTE,
-                    result == JwtTokenProvider.TokenValidationResult.EXPIRED
+                    inspection.result() == JwtTokenProvider.TokenValidationResult.EXPIRED
                             ? TOKEN_EXPIRED_CODE
                             : TOKEN_INVALID_CODE
             );
@@ -67,15 +68,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
+        Claims claims = inspection.claims();
         // refresh 토큰으로 API 접근 — invalid와 동일 취급, 보호 경로면 EntryPoint가 401.
         // permitAll 경로는 anonymous로 통과 (spec 3.2 — 의도된 동작 변화)
-        if (!jwtTokenProvider.isAccessToken(token)) {
+        if (!jwtTokenProvider.isAccessToken(claims)) {
             request.setAttribute(TOKEN_ERROR_CODE_ATTRIBUTE, TOKEN_INVALID_CODE);
             filterChain.doFilter(request, response);
             return;
         }
 
-        AuthUser authUser = jwtTokenProvider.getAuthUser(token);
+        AuthUser authUser = jwtTokenProvider.getAuthUser(claims);
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 authUser, "", List.of(new SimpleGrantedAuthority(authUser.role())));
         SecurityContextHolder.getContext().setAuthentication(authentication);

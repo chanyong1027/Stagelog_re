@@ -62,57 +62,60 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    private String getType(String token) {
-        return parseClaims(token).get("type", String.class);
-    }
-
-    public boolean isAccessToken(String token) {
-        return "access".equals(getType(token));
-    }
-
-    public TokenValidationResult getTokenValidationResult(String token) {
+    /**
+     * 검증 결과 + (VALID일 때) 파싱된 클레임을 함께 반환한다.
+     * 필터가 요청당 토큰을 한 번만 파싱하도록 하는 단일 진입점 — 서명·만료·iss/aud 검증을 여기서 끝낸다.
+     */
+    public TokenInspection inspect(String token) {
         try {
-            Jwts.parser()
+            Claims claims = Jwts.parser()
                     .verifyWith(secretKey)
                     .requireIssuer(jwtProperties.getIssuer())
                     .requireAudience(jwtProperties.getAudience())
                     .build()
-                    .parseSignedClaims(token);
-            return TokenValidationResult.VALID;
+                    .parseSignedClaims(token)
+                    .getPayload();
+            // principal 조립에 필수인 pid/role이 없으면 INVALID로 처리한다.
+            // (서명은 유효하나 클레임이 누락된 토큰이 getAuthUser에서 NPE→500 나는 것을 401로 일관화)
+            if (claims.get("pid", String.class) == null || claims.get("role", String.class) == null) {
+                log.info("필수 클레임(pid/role) 누락 — 유효하지 않은 토큰으로 처리합니다.");
+                return TokenInspection.of(TokenValidationResult.INVALID);
+            }
+            return new TokenInspection(TokenValidationResult.VALID, claims);
         } catch (ExpiredJwtException e) {
             log.info("만료된 JWT 토큰입니다.");
-            return TokenValidationResult.EXPIRED;
+            return TokenInspection.of(TokenValidationResult.EXPIRED);
         } catch (JwtException | IllegalArgumentException e) {
             // iss/aud 불일치(IncorrectClaimException)·부재(MissingClaimException)도
             // JwtException 하위이므로 여기서 INVALID로 처리된다.
             log.info("유효하지 않은 JWT 토큰입니다.");
-            return TokenValidationResult.INVALID;
+            return TokenInspection.of(TokenValidationResult.INVALID);
         }
+    }
+
+    /** 검증 결과만 필요할 때(테스트 등). 내부적으로 inspect()에 위임한다. */
+    public TokenValidationResult getTokenValidationResult(String token) {
+        return inspect(token).result();
+    }
+
+    public boolean isAccessToken(Claims claims) {
+        return "access".equals(claims.get("type", String.class));
     }
 
     /**
      * 클레임만으로 principal 조립 — stateless 전환의 핵심 (DB 조회 없음).
-     * 호출 전 getTokenValidationResult()로 검증이 끝났다고 가정한다.
+     * inspect()가 검증 + pid/role 존재를 이미 보장하므로 그 Claims를 그대로 받는다(재파싱 없음).
      */
-    public AuthUser getAuthUser(String token) {
-        Claims claims = parseClaims(token);
+    public AuthUser getAuthUser(Claims claims) {
         return new AuthUser(
                 UUID.fromString(claims.get("pid", String.class)),
                 claims.getSubject(),
                 claims.get("role", String.class));
     }
 
-    /**
-     * 클레임 추출 전용 — require(iss/aud) 검증을 일부러 넣지 않는다.
-     * 필터 흐름상 getTokenValidationResult()의 검증이 항상 선행하며,
-     * 여기 추가하면 IncorrectClaimException 처리가 중복된다.
-     */
-    private Claims parseClaims(String token) {
-        try {
-            return Jwts.parser().verifyWith(secretKey).build()
-                    .parseSignedClaims(token).getPayload();
-        } catch (ExpiredJwtException e) {
-            return e.getClaims();
+    public record TokenInspection(TokenValidationResult result, Claims claims) {
+        static TokenInspection of(TokenValidationResult result) {
+            return new TokenInspection(result, null);
         }
     }
 }
