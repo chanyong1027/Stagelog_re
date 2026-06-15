@@ -2,8 +2,10 @@ package com.stagelog.Stagelog.user.service;
 
 import com.stagelog.Stagelog.global.exception.EntityNotFoundException;
 import com.stagelog.Stagelog.global.exception.ErrorCode;
+import com.stagelog.Stagelog.global.exception.UnauthorizedException;
 import com.stagelog.Stagelog.user.domain.Provider;
 import com.stagelog.Stagelog.user.domain.User;
+import com.stagelog.Stagelog.user.domain.UserStatus;
 import com.stagelog.Stagelog.user.dto.UserProfileResponse;
 import com.stagelog.Stagelog.user.dto.UserUpdateRequest;
 import com.stagelog.Stagelog.user.repository.UserRepository;
@@ -48,14 +50,28 @@ public class UserService {
                 .orElseThrow(() -> new EntityNotFoundException(ErrorCode.USER_NOT_FOUND));
     }
 
-    public UserProfileResponse getMyProfile(UUID publicId) {
+    /**
+     * 차단(SUSPENDED/DELETED) 계정의 일반 API 접근을 차단한다.
+     * stateless 필터는 claims-only라 status를 모르므로, user를 이미 로드하는 이 계층에서
+     * 추가 쿼리 없이 status를 검사한다 — login/refresh와 동일한 403 AUTH_ACCOUNT_BLOCKED.
+     * (차단 후 ≤15분 잔존 access token으로 도달하는 창을, user를 로드하는 경로에 한해 즉시 닫음)
+     */
+    private User getActiveUserByPublicId(UUID publicId) {
         User user = getUserByPublicId(publicId);
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new UnauthorizedException(ErrorCode.AUTH_ACCOUNT_BLOCKED);
+        }
+        return user;
+    }
+
+    public UserProfileResponse getMyProfile(UUID publicId) {
+        User user = getActiveUserByPublicId(publicId);
         return UserProfileResponse.from(user);
     }
 
     @Transactional
     public UserProfileResponse updateProfile(UUID publicId, UserUpdateRequest request) {
-        User user = getUserByPublicId(publicId);
+        User user = getActiveUserByPublicId(publicId);
         user.updateProfile(
                 request.getNickname(),
                 request.getProfileImageUrl(),
@@ -66,7 +82,7 @@ public class UserService {
 
     @Transactional
     public void deleteUser(UUID publicId) {
-        User user = getUserByPublicId(publicId);
+        User user = getActiveUserByPublicId(publicId);
         user.delete();
     }
 
