@@ -17,6 +17,15 @@ describe('Input', () => {
     expect(screen.queryByText('회사 메일 가능')).not.toBeInTheDocument();
   });
 
+  it('error는 role=alert로 announce되고 input과 aria-describedby로 연결된다', () => {
+    render(<Input label="이메일" name="email" error="형식이 올바르지 않아요" />);
+    const alert = screen.getByRole('alert');
+    expect(alert).toHaveTextContent('형식이 올바르지 않아요');
+    // input의 aria-describedby가 에러 <p>의 id를 가리킨다
+    expect(screen.getByLabelText('이메일')).toHaveAttribute('aria-describedby', alert.id);
+    expect(alert.id).toBe('email-error');
+  });
+
   it('error가 없으면 helperText를 렌더한다', () => {
     render(<Input label="비밀번호" name="password" helperText="8-20자" />);
     expect(screen.getByText('8-20자')).toBeInTheDocument();

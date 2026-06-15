@@ -12,6 +12,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
  */
 const Input: React.FC<InputProps> = ({ label, error, helperText, className = '', id, ...props }) => {
   const inputId = id ?? props.name;
+  const errorId = error && inputId ? `${inputId}-error` : undefined;
   return (
     <div>
       {label && (
@@ -22,6 +23,7 @@ const Input: React.FC<InputProps> = ({ label, error, helperText, className = '',
       <input
         id={inputId}
         aria-invalid={!!error}
+        aria-describedby={errorId}
         className={
           'h-[54px] w-full rounded-[14px] border bg-capture-surface px-4 text-[15px] text-capture-fg ' +
           'placeholder:text-capture-fg-muted/60 transition-colors focus:outline-none focus:bg-capture-bg ' +
@@ -34,7 +36,7 @@ const Input: React.FC<InputProps> = ({ label, error, helperText, className = '',
         {...props}
       />
       {error && (
-        <p className="mt-[7px] flex items-center gap-1.5 text-[12.5px] text-error">
+        <p id={errorId} role="alert" className="mt-[7px] flex items-center gap-1.5 text-[12.5px] text-error">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
             <circle cx="12" cy="12" r="9" />
             <path d="M12 8v5M12 16.5v.01" />
