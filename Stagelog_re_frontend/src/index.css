@@ -2,6 +2,8 @@
 
 /* Pretendard Variable — Capture/Curate 양 모드 공통 본문 폰트 */
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+/* Gaegu — 손글씨 액센트 (인용구·정체성 한 점). 본문 사용 금지 (UX-DR41) */
+@import url('https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&display=swap');
 
 @theme {
   /* Capture mode (light) — 확정 디자인: 중립 zinc 베이스 (주황 액센트 폐기) */
@@ -60,6 +62,9 @@
   /* Motion */
   --motion-duration: 280ms;
   --motion-ease: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* 손글씨 액센트 폰트 — utility: font-gaegu */
+  --font-gaegu: 'Gaegu', cursive;
 }
 
 @media (prefers-reduced-motion: reduce) {
