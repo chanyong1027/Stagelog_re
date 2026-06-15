@@ -41,7 +41,9 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                 .getUserInfoEndpoint()
                 .getUserNameAttributeName();
 
-        OAuth2UserInfo userInfo = OAuth2UserInfoFactory.of(registrationId, oAuth2User.getAttributes());
+        OAuth2UserInfo userInfo = OAuth2UserInfoFactory.find(registrationId, oAuth2User.getAttributes())
+                .orElseThrow(() -> new OAuth2AuthenticationException(
+                        new OAuth2Error(ErrorCode.AUTH_OAUTH2_PROVIDER_ERROR.getCode())));
         return processUserInfo(userInfo, oAuth2User.getAttributes(), nameAttributeKey);
     }
 

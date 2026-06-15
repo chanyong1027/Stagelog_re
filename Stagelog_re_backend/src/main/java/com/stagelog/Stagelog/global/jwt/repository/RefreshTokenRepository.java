@@ -12,8 +12,6 @@ import org.springframework.data.repository.query.Param;
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
     Optional<RefreshToken> findByTokenHash(String tokenHash);
 
-    List<RefreshToken> findAllByUserId(Long userId);
-
     /** logout / reuse detection 시 user의 활성 토큰만 일괄 폐기 대상 조회. */
     List<RefreshToken> findAllByUserIdAndRevokedAtIsNull(Long userId);
 

@@ -17,8 +17,7 @@ public enum ErrorCode {
     USER_EMAIL_DUPLICATE(HttpStatus.CONFLICT, "USER_006", "이미 가입된 이메일이에요"),
 
     // ===== Auth 관련 =====
-    INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH_001", "유효하지 않은 Refresh Token입니다."),
-    EXPIRED_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH_002", "만료된 Refresh Token입니다."),
+    // AUTH_001/AUTH_002는 AUTH_011/AUTH_012로 대체된 잔재 — 참조 0 확인 후 제거 (P2-2)
     AUTH_INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "AUTH_003", "아이디/비밀번호가 올바르지 않습니다."),
     AUTH_ACCOUNT_BLOCKED(HttpStatus.FORBIDDEN, "AUTH_004", "사용이 제한된 계정입니다."),
     AUTH_TOO_MANY_ATTEMPTS(HttpStatus.TOO_MANY_REQUESTS, "AUTH_005", "로그인 시도 횟수를 초과했습니다. 잠시 후 다시 시도해주세요."),
