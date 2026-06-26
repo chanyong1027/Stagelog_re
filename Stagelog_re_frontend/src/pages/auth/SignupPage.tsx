@@ -46,8 +46,16 @@ const SignupPage: React.FC = () => {
   };
 
   const handleChange = (field: 'email' | 'password' | 'nickname') => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [field]: e.target.value });
-    if (errors[field]) setErrors({ ...errors, [field]: undefined });
+    const value = e.target.value;
+    setFormData({ ...formData, [field]: value });
+    setErrors((prev) => ({
+      ...prev,
+      [field]: undefined,
+      // 비밀번호를 고치면 확인값과의 일치 여부도 같이 재계산 (불일치 경고 잔존 방지)
+      ...(field === 'password'
+        ? { passwordConfirm: passwordConfirm && value !== passwordConfirm ? '비밀번호가 일치하지 않아요' : undefined }
+        : {}),
+    }));
   };
 
   const handlePasswordConfirm = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -81,11 +89,13 @@ const SignupPage: React.FC = () => {
 
         <div>
           <label className="flex cursor-pointer items-start gap-2.5 text-[13.5px] leading-relaxed text-capture-fg-muted">
-            <input type="checkbox" checked={formData.agreedToTerms} onChange={handleConsent} disabled={isPending}
+            <input id="agreedToTerms" name="agreedToTerms" type="checkbox" checked={formData.agreedToTerms} onChange={handleConsent} disabled={isPending}
+              aria-invalid={!!errors.agreedToTerms}
+              aria-describedby={errors.agreedToTerms ? 'agreedToTerms-error' : undefined}
               className="mt-0.5 h-[18px] w-[18px] shrink-0 accent-capture-accent" />
             <span>만 14세 이상이며 <span className="text-capture-fg underline underline-offset-2">이용약관</span>과 <span className="text-capture-fg underline underline-offset-2">개인정보 처리방침</span>에 동의해요</span>
           </label>
-          {errors.agreedToTerms && <p role="alert" className="mt-1.5 text-[12.5px] text-error">{errors.agreedToTerms}</p>}
+          {errors.agreedToTerms && <p id="agreedToTerms-error" role="alert" className="mt-1.5 text-[12.5px] text-error">{errors.agreedToTerms}</p>}
         </div>
 
         <Button type="submit" size="lg" loading={isPending} className="mt-1 w-full">가입 완료</Button>

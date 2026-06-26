@@ -4,7 +4,7 @@
    여기서 중복 @import하지 않는다 (render-blocking @import 회피, 더 이른 로드). */
 /* Gaegu — 손글씨 액센트 (인용구·정체성 한 점). 본문 사용 금지 (UX-DR41).
    TODO(Story 3.x): Capture 메인 라우트(/ 등)에서 미사용 시에도 eager 로드됨 → 라우트 기반 dynamic import로 전환. */
-@import url('https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&display=swap');
+@import 'https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&display=swap';
 
 @theme {
   /* Capture mode (light) — 확정 디자인: 중립 zinc 베이스 (주황 액센트 폐기) */
