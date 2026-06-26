@@ -5,6 +5,9 @@
 export const validationMessages = {
   required: '필수 입력 항목이에요',
   invalidEmail: '이메일 형식을 다시 확인해주세요',
+  invalidFormat: '형식을 다시 확인해주세요',
+  minLength: (n: number) => `${n}자 이상 입력해주세요`,
+  maxLength: (n: number) => `${n}자 이내로 적어주세요`,
   underAge: '만 14세 이상만 가입할 수 있어요',
   termsRequired: '약관 동의가 필요해요',
 } as const;

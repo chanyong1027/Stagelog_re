@@ -21,13 +21,30 @@ describe('zod v4 ko locale + 커스텀 override', () => {
     }
   });
 
-  it('그 외는 공식 ko() locale에 위임 — too_small string은 한국어', () => {
+  it('too_small string → 커스텀 minLength 메시지', () => {
     const schema = z.string().min(3);
     const result = schema.safeParse('ab');
     expect(result.success).toBe(false);
     if (!result.success) {
-      // ko() 공식 메시지로 위임됨 (한국어 문구 확인)
-      expect(result.error.issues[0]?.message).toMatch(/너무 작습니다|문자/);
+      expect(result.error.issues[0]?.message).toBe('3자 이상 입력해주세요');
+    }
+  });
+
+  it('too_big string → 커스텀 maxLength 메시지', () => {
+    const schema = z.string().max(5);
+    const result = schema.safeParse('abcdef');
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('5자 이내로 적어주세요');
+    }
+  });
+
+  it('이메일 외 invalid_format(정규식) → 일반 형식 메시지', () => {
+    const schema = z.string().regex(/^\d+$/);
+    const result = schema.safeParse('abc');
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('형식을 다시 확인해주세요');
     }
   });
 });

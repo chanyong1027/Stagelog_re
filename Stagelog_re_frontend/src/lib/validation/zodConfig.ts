@@ -19,9 +19,20 @@ z.config({
     if (issue.code === 'invalid_type' && (issue as { input?: unknown }).input === undefined) {
       return { message: validationMessages.required };
     }
-    // 이메일 형식
-    if (issue.code === 'invalid_format' && (issue as { format?: string }).format === 'email') {
-      return { message: validationMessages.invalidEmail };
+    // 형식 오류 — 이메일은 전용 카피, 그 외 형식(정규식 등)은 일반 카피
+    if (issue.code === 'invalid_format') {
+      const format = (issue as { format?: string }).format;
+      return {
+        message: format === 'email' ? validationMessages.invalidEmail : validationMessages.invalidFormat,
+      };
+    }
+    // 최소 길이 (문자열)
+    if (issue.code === 'too_small' && (issue as { origin?: string }).origin === 'string') {
+      return { message: validationMessages.minLength(Number((issue as { minimum?: unknown }).minimum)) };
+    }
+    // 최대 길이 (문자열)
+    if (issue.code === 'too_big' && (issue as { origin?: string }).origin === 'string') {
+      return { message: validationMessages.maxLength(Number((issue as { maximum?: unknown }).maximum)) };
     }
     // 그 외는 공식 한국어 locale에 위임
     return koErrorMap(issue);

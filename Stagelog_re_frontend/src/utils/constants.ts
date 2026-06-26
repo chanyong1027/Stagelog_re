@@ -40,6 +40,7 @@ export const PAGINATION = {
 export const STORAGE_KEYS = {
   ACCESS_TOKEN: 'accessToken',
   USER_INFO: 'userInfo',
+  REDIRECT_AFTER_LOGIN: 'redirectAfterLogin',
 } as const;
 
 // 라우트 경로

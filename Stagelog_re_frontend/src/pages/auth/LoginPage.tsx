@@ -60,7 +60,7 @@ const LoginPage: React.FC = () => {
         <span className="h-px flex-1 bg-capture-muted" />또는<span className="h-px flex-1 bg-capture-muted" />
       </div>
 
-      <Button type="button" variant="kakao" size="lg" onClick={handleKakaoLogin} className="w-full">
+      <Button type="button" variant="kakao" size="lg" onClick={handleKakaoLogin} className="w-full" aria-label="카카오로 로그인">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="#181600" aria-hidden="true">
           <path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.9 5.3 4.7 6.7-.2.7-.7 2.6-.8 3-.1.5.2.5.4.4.2-.1 2.6-1.8 3.7-2.5.7.1 1.4.2 2 .2 5.5 0 10-3.6 10-8S17.5 3 12 3z" />
         </svg>
