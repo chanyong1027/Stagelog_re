@@ -8,6 +8,7 @@ import com.stagelog.Stagelog.global.exception.DuplicateEntityException;
 import com.stagelog.Stagelog.global.exception.ErrorCode;
 import com.stagelog.Stagelog.global.exception.InvalidInputException;
 import com.stagelog.Stagelog.user.repository.UserRepository;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -31,11 +32,11 @@ class AuthServiceSignupTest {
 
     @Test
     void signUp_creates_user_with_publicId_and_consent_from_server_terms_version() {
-        Long id = authService.signUp(valid("a@b.com"));
+        UUID publicId = authService.signUp(valid("a@b.com"));
 
-        var saved = userRepository.findById(id).orElseThrow();
+        var saved = userRepository.findByPublicId(publicId).orElseThrow();
         assertThat(saved.getEmail()).isEqualTo("a@b.com");
-        assertThat(saved.getPublicId()).isNotNull();
+        assertThat(saved.getPublicId()).isEqualTo(publicId);
         assertThat(saved.getAgeConfirmedAt()).isNotNull();
         assertThat(saved.getTermsAgreedAt()).isNotNull();
         assertThat(saved.getTermsVersion()).isNotBlank();

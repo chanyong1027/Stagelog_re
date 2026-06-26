@@ -37,7 +37,8 @@ public class UserService {
     }
 
     public Optional<User> findByEmail(String email) {
-        return userRepository.findByEmail(email);
+        // 저장 시 정규화된 email과 일치시킨다 (OAuth 이메일 충돌 검사 등 조회 경로 통일).
+        return userRepository.findByEmail(User.normalizeEmail(email));
     }
 
     public User getUserById(Long userId) {

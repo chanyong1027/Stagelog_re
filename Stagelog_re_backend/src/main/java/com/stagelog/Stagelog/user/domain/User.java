@@ -13,6 +13,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.OffsetDateTime;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import lombok.AccessLevel;
@@ -95,6 +96,7 @@ public class User extends BaseEntity {
     public static User createLocalUser(
             String email, String encodedPassword, String nickname,
             OffsetDateTime ageConfirmedAt, OffsetDateTime termsAgreedAt, String termsVersion) {
+        email = normalizeEmail(email);
         validateEmail(email);
         validateEncodedPassword(encodedPassword);
         validateNickname(nickname);
@@ -124,6 +126,7 @@ public class User extends BaseEntity {
     public static User createSocialUser(
             String email, String nickname, String profileImageUrl,
             Provider provider, String providerId) {
+        email = normalizeEmail(email);
         validateEmail(email);
         validateNickname(nickname);
         validateSocialProvider(provider, providerId);
@@ -178,6 +181,15 @@ public class User extends BaseEntity {
 
     public void suspend()  { this.status = UserStatus.SUSPENDED; }
     public void activate() { this.status = UserStatus.ACTIVE; }
+
+    /**
+     * 이메일 정규화 — 저장/조회 키를 일관화한다.
+     * 대소문자·주변 공백 차이로 인한 중복가입('Foo@x.com' vs 'foo@x.com')과
+     * 로그인 조회 불일치를 막는다. 저장 경로(팩토리)와 조회 경로(login/OAuth)에서 공유한다.
+     */
+    public static String normalizeEmail(String email) {
+        return email == null ? null : email.trim().toLowerCase(Locale.ROOT);
+    }
 
     private static void validateEmail(String email) {
         if (email == null || !EMAIL_PATTERN.matcher(email).matches()) {

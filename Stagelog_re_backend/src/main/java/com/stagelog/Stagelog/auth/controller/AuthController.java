@@ -13,6 +13,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import java.util.Objects;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,9 +32,9 @@ public class AuthController {
     private final RefreshTokenCookieManager refreshTokenCookieManager;
 
     @PostMapping("/signup")
-    public ResponseEntity<Long> signup(@Valid @RequestBody SignupRequest request) {
-        Long id = authService.signUp(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(id);
+    public ResponseEntity<UUID> signup(@Valid @RequestBody SignupRequest request) {
+        UUID publicId = authService.signUp(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(publicId);
     }
 
     @PostMapping("/login")

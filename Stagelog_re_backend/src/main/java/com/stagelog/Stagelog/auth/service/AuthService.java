@@ -36,7 +36,7 @@ public class AuthService {
     private final TermsProperties termsProperties;
 
     @Transactional
-    public Long signUp(SignupRequest request) {
+    public UUID signUp(SignupRequest request) {
         // Defense in depth — controller @Valid가 false를 막지만, 다른 호출 경로 방어.
         if (!request.isAgreedToTerms()) {
             throw new InvalidInputException(ErrorCode.AUTH_TERMS_NOT_AGREED);
@@ -49,7 +49,8 @@ public class AuthService {
         );
         // AC (epics.md Story 1.2): try-find-then-insert 금지 → DB UNIQUE 위반 catch.
         try {
-            return userRepository.saveAndFlush(user).getId();
+            // 내부 PK(Long)가 아니라 외부 노출 안전 식별자(publicId)를 반환한다.
+            return userRepository.saveAndFlush(user).getPublicId();
         } catch (DataIntegrityViolationException e) {
             throw new DuplicateEntityException(ErrorCode.USER_EMAIL_DUPLICATE);
         }
@@ -57,7 +58,8 @@ public class AuthService {
 
     @Transactional
     public AuthTokenResult login(LoginRequest request, String clientIp) {
-        String email = request.getEmail();
+        // 저장 시 정규화된 email과 일치시키고, 잠금 카운터 키도 정규화로 통일한다.
+        String email = User.normalizeEmail(request.getEmail());
         loginAttemptService.validateNotLocked(email, clientIp);
 
         Optional<User> opt = userRepository.findByEmail(email);
