@@ -51,6 +51,13 @@ public class RefreshTokenRotationService {
             // 경합 패배 또는 이미 폐기/만료. 사유를 fresh로 재판별.
             RefreshToken fresh = refreshTokenRepository.findByTokenHash(hash).orElse(null);
             if (fresh != null && fresh.getRevokedAt() != null) {
+                // 이미 폐기된 토큰의 재시도. 사유로 '재사용 공격'과 '단순 만료'를 구분한다.
+                // EXPIRED: 자연 만료를 이미 마킹한 토큰의 단순 재시도 → family를 건드리지 않고 만료로 응답.
+                // 그 외(ROTATED=회전 후 옛 토큰 재사용 / LOGOUT / REUSED): 재사용으로 간주, family 폐기.
+                // (옛 코드는 사유 불문 REUSED로 단정 → 만료 토큰 재시도만으로 전 세션이 몰살됐다.)
+                if ("EXPIRED".equals(fresh.getRevokedReason())) {
+                    return RefreshOutcome.expired();
+                }
                 refreshTokenRepository.revokeAllActiveByUserId(ownerId, "REUSED", now);
                 return RefreshOutcome.reused();
             }

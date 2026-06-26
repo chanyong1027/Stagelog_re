@@ -66,6 +66,33 @@ class RefreshTokenRotationIntegrationTest {
         assertThat(refreshTokenRepository.findAllByUserIdAndRevokedAtIsNull(userId)).isEmpty();
     }
 
+    /**
+     * #5 회귀: 자연 만료된 토큰을 재시도해도 REUSED로 오분류해 family를 몰살하지 않는다.
+     * 첫 rotate가 만료 토큰을 EXPIRED로 마킹 → 같은 토큰 재시도는 revokedReason=EXPIRED를 보고
+     * 다시 EXPIRED 응답(폐기 없음). 다른 디바이스의 활성 토큰은 살아남아야 한다.
+     */
+    @Test
+    void retry_of_expired_token_returns_expired_and_keeps_other_sessions() {
+        OffsetDateTime now = OffsetDateTime.now();
+        // 이미 만료된 토큰 (expires_at < now)
+        String expiredRaw = "raw-expired-token";
+        refreshTokenRepository.saveAndFlush(
+                RefreshToken.issue(userId, hasher.hash(expiredRaw), now.minusDays(15), now.minusDays(1)));
+        // 다른 디바이스의 활성 토큰 (몰살되면 안 됨)
+        String activeRaw = "raw-active-token";
+        refreshTokenRepository.saveAndFlush(
+                RefreshToken.issue(userId, hasher.hash(activeRaw), now, now.plusDays(14)));
+
+        RefreshOutcome first = rotationService.rotate(expiredRaw, OffsetDateTime.now());
+        assertThat(first.status()).isEqualTo(RefreshOutcome.Status.EXPIRED);
+
+        RefreshOutcome second = rotationService.rotate(expiredRaw, OffsetDateTime.now());
+        assertThat(second.status()).isEqualTo(RefreshOutcome.Status.EXPIRED);
+
+        // 만료 토큰 재시도가 활성 세션을 몰살하지 않았음 (버그였다면 여기서 0개)
+        assertThat(refreshTokenRepository.findAllByUserIdAndRevokedAtIsNull(userId)).hasSize(1);
+    }
+
     /** 차단(SUSPENDED) 유저의 rotate → BLOCKED. 토큰은 이미 claim되어 소모됨 (의도 — spec 3.3). */
     @Test
     void rotate_with_suspended_user_returns_blocked() {
