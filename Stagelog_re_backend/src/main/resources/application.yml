@@ -26,9 +26,15 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
+  # Flyway가 스키마의 SoT — db/migration/V*__*.sql 파일이 적용된다.
+  # ddl-auto=validate로 엔티티-스키마 mismatch는 startup 시점 fail-fast.
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     properties:
       hibernate:
         format_sql: false
@@ -54,11 +60,29 @@ external:
 jwt:
   secret: ${JWT_SECRET}
   refresh-token-pepper: ${JWT_REFRESH_PEPPER}
-  access-token-validity: 3600000      # 1시간
+  access-token-validity: 900000       # 15분 (NFR10 15~30분 — ADR 2026-06-10에서 15분 확정)
   refresh-token-validity: 1209600000  # 14일
+  issuer: stagelog-local              # 프로파일별 override — dev/prod yml 참조
+  audience: stagelog-api
 
 app:
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS}
   auth:
     frontend-redirect-uri: ${FRONTEND_REDIRECT_URI}
+  terms:
+    current-version: "2026-05-16"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health          # health만 노출 — 정보 누출 방지
+  endpoint:
+    health:
+      show-details: never        # 상세(빈/디스크 등) 비노출
+      probes:
+        enabled: true            # liveness/readiness 그룹 활성
+      group:
+        readiness:
+          include: readinessState,db   # 배포 게이트(readiness)에 RDS 연결 포함 (기본 readiness엔 db 없음)

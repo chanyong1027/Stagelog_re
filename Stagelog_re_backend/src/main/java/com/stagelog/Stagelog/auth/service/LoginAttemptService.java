@@ -21,9 +21,9 @@ public class LoginAttemptService {
     private final LoginAttemptRepository loginAttemptRepository;
 
     @Transactional(readOnly = true)
-    public void validateNotLocked(String userId, String clientIp) {
+    public void validateNotLocked(String email, String clientIp) {
         LocalDateTime now = LocalDateTime.now();
-        loginAttemptRepository.findByUserIdAndClientIp(userId, clientIp)
+        loginAttemptRepository.findByEmailAndClientIp(email, clientIp)
                 .ifPresent(attempt -> {
                     if (attempt.isLocked(now)) {
                         throw new UnauthorizedException(ErrorCode.AUTH_TOO_MANY_ATTEMPTS);
@@ -32,10 +32,10 @@ public class LoginAttemptService {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void recordFailure(String userId, String clientIp) {
+    public void recordFailure(String email, String clientIp) {
         LocalDateTime now = LocalDateTime.now();
-        LoginAttempt attempt = loginAttemptRepository.findByUserIdAndClientIp(userId, clientIp)
-                .orElseGet(() -> LoginAttempt.create(userId, clientIp, now));
+        LoginAttempt attempt = loginAttemptRepository.findByEmailAndClientIp(email, clientIp)
+                .orElseGet(() -> LoginAttempt.create(email, clientIp, now));
 
         attempt.recordFailure(now, MAX_FAILURE_COUNT, FAILURE_WINDOW, LOCK_DURATION);
 
@@ -45,7 +45,7 @@ public class LoginAttemptService {
     }
 
     @Transactional
-    public void clearFailures(String userId, String clientIp) {
-        loginAttemptRepository.deleteByUserIdAndClientIp(userId, clientIp);
+    public void clearFailures(String email, String clientIp) {
+        loginAttemptRepository.deleteByEmailAndClientIp(email, clientIp);
     }
 }

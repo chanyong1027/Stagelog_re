@@ -1,6 +1,6 @@
 package com.stagelog.Stagelog.user.controller;
 
-import com.stagelog.Stagelog.global.security.CustomUserDetails;
+import com.stagelog.Stagelog.global.security.AuthUser;
 import com.stagelog.Stagelog.user.dto.UserProfileResponse;
 import com.stagelog.Stagelog.user.dto.UserUpdateRequest;
 import com.stagelog.Stagelog.user.service.UserService;
@@ -24,24 +24,21 @@ public class UserController {
 
     @GetMapping("/me")
     public ResponseEntity<UserProfileResponse> getMyProfile(
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        Long id = userDetails.getUser().getId();
-        return ResponseEntity.ok(userService.getMyProfile(id));
+            @AuthenticationPrincipal AuthUser authUser) {
+        return ResponseEntity.ok(userService.getMyProfile(authUser.publicId()));
     }
 
     @PatchMapping("/me")
     public ResponseEntity<UserProfileResponse> updateMyProfile(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @AuthenticationPrincipal AuthUser authUser,
             @Valid @RequestBody UserUpdateRequest request) {
-        Long id = userDetails.getUser().getId();
-        return ResponseEntity.ok(userService.updateProfile(id, request));
+        return ResponseEntity.ok(userService.updateProfile(authUser.publicId(), request));
     }
 
     @DeleteMapping("/me")
     public ResponseEntity<Void> deleteMyAccount(
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        Long id = userDetails.getUser().getId();
-        userService.deleteUser(id);
+            @AuthenticationPrincipal AuthUser authUser) {
+        userService.deleteUser(authUser.publicId());
         return ResponseEntity.noContent().build();
     }
 }

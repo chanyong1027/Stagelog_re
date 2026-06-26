@@ -4,9 +4,12 @@ import com.stagelog.Stagelog.auth.dto.AuthTokenResult;
 import com.stagelog.Stagelog.global.jwt.JwtProperties;
 import com.stagelog.Stagelog.global.jwt.JwtTokenProvider;
 import com.stagelog.Stagelog.global.jwt.RefreshTokenHasher;
+import com.stagelog.Stagelog.global.jwt.domain.RefreshToken;
 import com.stagelog.Stagelog.global.jwt.repository.RefreshTokenRepository;
 import com.stagelog.Stagelog.user.domain.User;
-import java.time.LocalDateTime;
+import java.time.Duration;
+import java.time.OffsetDateTime;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,29 +31,22 @@ public class AuthTokenIssuer {
     private final RefreshTokenRepository refreshTokenRepository;
 
     /**
-     * 신규 토큰 발급: access + refresh 생성 → refresh 해시 → DB upsert.
+     * 신규 토큰 발급: access + refresh 생성 → refresh 해시 → DB INSERT (row-per-token).
      * 자체 로그인 및 OAuth2 성공 핸들러에서 사용한다.
      */
     @Transactional
     public AuthTokenResult issueFor(User user) {
-        String email = user.getEmail();
-        String role = user.getRole().getValue();
-
-        TokenPairWithHash pair = createTokenPair(email, role);
-
-        refreshTokenRepository.upsertByEmail(
-                email,
-                pair.refreshTokenHash(),
-                LocalDateTime.now().plusSeconds(jwtProperties.getRefreshTokenValidity() / 1000)
-        );
-
+        TokenPairWithHash pair = createTokenPair(user.getEmail(), user.getRole().getValue(), user.getPublicId());
+        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime expiresAt = now.plus(Duration.ofMillis(jwtProperties.getRefreshTokenValidity()));
+        refreshTokenRepository.save(
+                RefreshToken.issue(user.getId(), pair.refreshTokenHash(), now, expiresAt));
         return AuthTokenResult.of(
                 pair.accessToken(),
                 pair.refreshToken(),
-                user.getId(),
-                email,
-                user.getNickname()
-        );
+                user.getPublicId().toString(),
+                user.getEmail(),
+                user.getNickname());
     }
 
     /**
@@ -58,9 +54,9 @@ public class AuthTokenIssuer {
      * {@code AuthService.refresh()}의 rotation 헬퍼 — package-private.
      * 외부에서 직접 호출 금지: 반드시 {@link #issueFor(User)}를 사용할 것.
      */
-    TokenPairWithHash createTokenPair(String email, String role) {
-        String accessToken = jwtTokenProvider.createAccessToken(email, role);
-        String refreshToken = jwtTokenProvider.createRefreshToken(email, role);
+    TokenPairWithHash createTokenPair(String email, String role, UUID publicId) {
+        String accessToken = jwtTokenProvider.createAccessToken(email, role, publicId);
+        String refreshToken = jwtTokenProvider.createRefreshToken(email, role, publicId);
         String refreshTokenHash = refreshTokenHasher.hash(refreshToken);
         return new TokenPairWithHash(accessToken, refreshToken, refreshTokenHash);
     }

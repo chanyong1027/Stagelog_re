@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'Stagelog_re_backend/**'
+              - '.github/workflows/ci.yml'
+            frontend:
+              - 'Stagelog_re_frontend/**'
+              - '.github/workflows/ci.yml'
+
+  backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Stagelog_re_backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+      - name: Build & test
+        run: ./gradlew build      # Testcontainers는 러너 내장 Docker로 동작
+      - name: Docker build (verify, no push)
+        run: docker build -t stagelog-backend:ci .
+
+  frontend:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Stagelog_re_frontend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: Stagelog_re_frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test
+      - run: npm run build
+      - name: Docker build (verify, no push)
+        run: docker build -t stagelog-frontend:ci .
+
+  # 단일 required check — 스킵된 backend/frontend는 success 취급, changes 실패·잡 실패만 막는다.
+  ci-ok:
+    if: always()
+    needs: [ changes, backend, frontend ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Aggregate result
+        run: |
+          # changes(필수 선행)는 반드시 success여야 한다 — 실패 시 backend/frontend가 skip되어 가짜 green이 되는 구멍을 막는다.
+          if [ "${{ needs.changes.result }}" != "success" ] || \
+             [ "${{ needs.backend.result }}" = "failure" ] || [ "${{ needs.backend.result }}" = "cancelled" ] || \
+             [ "${{ needs.frontend.result }}" = "failure" ] || [ "${{ needs.frontend.result }}" = "cancelled" ]; then
+            echo "게이트 실패: changes=${{ needs.changes.result }} backend=${{ needs.backend.result }} frontend=${{ needs.frontend.result }}"
+            exit 1
+          fi
+          echo "통과 (스킵된 backend/frontend는 OK): changes=${{ needs.changes.result }} backend=${{ needs.backend.result }} frontend=${{ needs.frontend.result }}"

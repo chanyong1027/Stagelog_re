@@ -1,0 +1,12 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+  flyway:
+    # 운영 환경에선 절대 clean 못 함. 실수로 DROP SCHEMA가 호출되는 사고 방지.
+    clean-disabled: true
+  jpa:
+    show-sql: false
+
+jwt:
+  issuer: stagelog-prod

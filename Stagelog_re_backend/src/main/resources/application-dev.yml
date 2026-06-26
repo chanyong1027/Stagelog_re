@@ -1,0 +1,12 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+  flyway:
+    # dev에서만 ./gradlew flywayClean 가능. prod는 clean-disabled=true로 막혀 있음.
+    clean-disabled: false
+  jpa:
+    show-sql: true
+
+jwt:
+  issuer: stagelog-dev

@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 // import { Toaster } from 'react-hot-toast';
 import App from './App';
 import './index.css';
+import './lib/validation/zodConfig'; // zod 전역 한국어 errorMap 적용 (side-effect)
 
 // React Query 클라이언트 설정
 const queryClient = new QueryClient({

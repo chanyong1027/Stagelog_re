@@ -10,8 +10,8 @@ import lombok.Getter;
 public class UserProfileResponse {
 
     private Long id;
+    private String publicId;
     private String email;
-    private String userId;
     private String nickname;
     private String profileImageUrl;
     private Provider provider;
@@ -21,12 +21,12 @@ public class UserProfileResponse {
     public static UserProfileResponse from(User user) {
         return new UserProfileResponse(
                 user.getId(),
+                user.getPublicId().toString(),
                 user.getEmail(),
-                user.getUserId(),
                 user.getNickname(),
                 user.getProfileImageUrl(),
                 user.getProvider(),
-                user.getIsSocial(),
+                user.getProvider() != Provider.LOCAL,
                 user.getEmailNotificationEnabled()
         );
     }

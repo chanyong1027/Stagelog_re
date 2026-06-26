@@ -6,7 +6,6 @@ export const API_ENDPOINTS = {
     SIGNUP: '/api/auth/signup',
     LOGOUT: '/api/auth/logout',
     REFRESH: '/api/auth/refresh',
-    CHECK_USERID: '/api/auth/check-userid',
     OAUTH2_KAKAO: '/oauth2/authorization/kakao',
   },
   // 공연
@@ -41,6 +40,7 @@ export const PAGINATION = {
 export const STORAGE_KEYS = {
   ACCESS_TOKEN: 'accessToken',
   USER_INFO: 'userInfo',
+  REDIRECT_AFTER_LOGIN: 'redirectAfterLogin',
 } as const;
 
 // 라우트 경로
@@ -48,6 +48,11 @@ export const ROUTES = {
   HOME: '/',
   LOGIN: '/login',
   SIGNUP: '/signup',
+  // 신규 IA (5탭): 발견/공연/아티스트/일기장/나
+  SHOWS: '/shows',
+  ARTISTS: '/artists',
+  JOURNAL: '/journal',
+  // ↓ 레거시 라우트 (브라운필드 페이지용, 재설계 시 정리 예정)
   PERFORMANCES: '/performances',
   PERFORMANCE_DETAIL: (id: number) => `/performances/${id}`,
   CALENDAR: '/calendar',
@@ -80,8 +85,6 @@ export const DATE_FORMAT = {
 
 // 유효성 검사 정규식
 export const VALIDATION_REGEX = {
-  // 아이디: 2-20자, 영문/숫자/언더스코어
-  USER_ID: /^[a-zA-Z0-9_]{2,20}$/,
   // 닉네임: 2-20자, 한글/영문/숫자/언더스코어
   NICKNAME: /^[가-힣a-zA-Z0-9_]{2,20}$/,
   // 이메일
@@ -103,8 +106,8 @@ export const ERROR_MESSAGES = {
     REQUIRED_FIELD: '필수 입력 항목입니다.',
     INVALID_EMAIL: '올바른 이메일 형식이 아닙니다.',
     INVALID_PASSWORD: '비밀번호는 8-20자의 영문, 숫자, 특수문자를 포함해야 합니다.',
-    INVALID_USER_ID: '아이디는 2-20자의 영문, 숫자, 언더스코어만 사용 가능합니다.',
     INVALID_NICKNAME: '닉네임은 2-20자의 한글, 영문, 숫자, 언더스코어만 사용 가능합니다.',
+    TERMS_NOT_AGREED: '만 14세 이상이며 약관 및 개인정보 처리방침에 동의해주세요.',
   },
   // 네트워크
   NETWORK: {

@@ -18,6 +18,10 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestCustomizers;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -44,8 +48,29 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
+    /**
+     * 모든 /oauth2/authorization/* 요청에 PKCE (code_challenge + code_challenge_method=S256)를 강제 추가.
+     * 카카오는 confidential client(client_secret 보유)지만 RFC 9700(OAuth 2.1) 권장에 따라 PKCE 적용 —
+     * authorization code interception 공격에 대한 추가 방어층.
+     */
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public OAuth2AuthorizationRequestResolver pkceAuthorizationRequestResolver(
+            ClientRegistrationRepository clientRegistrationRepository) {
+        DefaultOAuth2AuthorizationRequestResolver resolver =
+                new DefaultOAuth2AuthorizationRequestResolver(
+                        clientRegistrationRepository,
+                        "/oauth2/authorization"
+                );
+        resolver.setAuthorizationRequestCustomizer(
+                OAuth2AuthorizationRequestCustomizers.withPkce()
+        );
+        return resolver;
+    }
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            OAuth2AuthorizationRequestResolver pkceAuthorizationRequestResolver) throws Exception {
         http
                 .cors(corsCustomizer -> corsCustomizer.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
@@ -58,7 +83,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/**", "/api/performances/**", "/api/migration/**",
                                 "/performance-admin.html",
-                                "/oauth2/**", "/login/oauth2/**"
+                                "/oauth2/**", "/login/oauth2/**",
+                                "/actuator/health", "/actuator/health/**"
                         ).permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
@@ -66,6 +92,7 @@ public class SecurityConfig {
                 .oauth2Login(oauth2 -> oauth2
                         .authorizationEndpoint(authorization -> authorization
                                 .authorizationRequestRepository(cookieAuthorizationRequestRepository)
+                                .authorizationRequestResolver(pkceAuthorizationRequestResolver)
                         )
                         .userInfoEndpoint(userInfo -> userInfo
                                 .userService(customOAuth2UserService)

@@ -8,11 +8,11 @@ import lombok.Getter;
 public class TokenResponse {
     private String accessToken;
     private String tokenType;
-    private Long userId;
+    private String publicId;
     private String email;
     private String nickname;
 
-    public static TokenResponse of(String accessToken, Long userId, String email, String nickname) {
-        return new TokenResponse(accessToken, "Bearer", userId, email, nickname);
+    public static TokenResponse of(String accessToken, String publicId, String email, String nickname) {
+        return new TokenResponse(accessToken, "Bearer", publicId, email, nickname);
     }
 }

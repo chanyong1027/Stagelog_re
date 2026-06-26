@@ -5,7 +5,7 @@ import { UserInfo } from '../types/auth.types';
 interface AuthState {
   isAuthenticated: boolean;
   token: string | null;
-  userId: number | null;
+  publicId: string | null;
   email: string | null;
   nickname: string | null;
   setAuth: (token: string, userInfo: UserInfo) => void;
@@ -35,7 +35,7 @@ export const useAuthStore = create<AuthState>((set) => {
   return {
     isAuthenticated: !!token,
     token,
-    userId: userInfo?.userId ?? null,
+    publicId: userInfo?.publicId ?? null,
     email: userInfo?.email ?? null,
     nickname: userInfo?.nickname ?? null,
 
@@ -45,7 +45,7 @@ export const useAuthStore = create<AuthState>((set) => {
       set({
         isAuthenticated: true,
         token,
-        userId: userInfo.userId,
+        publicId: userInfo.publicId,
         email: userInfo.email,
         nickname: userInfo.nickname,
       });
@@ -57,7 +57,7 @@ export const useAuthStore = create<AuthState>((set) => {
       set({
         isAuthenticated: false,
         token: null,
-        userId: null,
+        publicId: null,
         email: null,
         nickname: null,
       });

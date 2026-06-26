@@ -1,0 +1,88 @@
+# 테스트 전용 프로파일.
+# - Testcontainers가 jdbc:tc:postgresql:16:/// URL을 보고 disposable Postgres 16 컨테이너를 자동 기동.
+# - 환경변수(${KAKAO_CLIENT_ID} 등)에 의존하지 않도록 dummy 값을 박는다.
+# - 실제 Spring context 부팅에 필요한 모든 properties를 채워 둠 — 누락 시 @PostConstruct/@Value placeholder가 실패한다.
+#
+# 영향원 매핑:
+#   - RefreshTokenHasher.validatePepper     ← jwt.refresh-token-pepper
+#   - SecurityConfig.@Value                 ← app.cors.allowed-origins
+#   - OAuth2AuthenticationSuccess/Failure   ← app.auth.frontend-redirect-uri
+#   - KopisApiClient.@Value                 ← external.kopis
+#   - AuthCookieProperties (@ConfigProps)   ← app.auth.cookie.* (nullable이나 NPE 방어 차원)
+#   - TermsProperties (@ConfigProps, Task 2 신설) ← app.terms.current-version
+
+spring:
+  config:
+    activate:
+      on-profile: test
+  datasource:
+    # tc: prefix → Testcontainers가 Postgres 16 컨테이너 자동 기동 후 JDBC URL 주입
+    url: jdbc:tc:postgresql:16:///stagelog_test
+    username: test
+    password: test
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    clean-disabled: false
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: dummy-test-client-id
+            client-secret: dummy-test-client-secret
+            client-authentication-method: client_secret_post
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/kakao"
+            scope: profile_nickname, profile_image, account_email
+            client-name: Kakao
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+  batch:
+    job:
+      enabled: false
+
+external:
+  kopis: dummy-test-kopis-key
+  # shape는 prod application.yml과 일치 (코드가 직접 사용하지 않더라도 정합 유지).
+  spotify:
+    client-id: dummy-test-spotify-client-id
+    client-secret: dummy-test-spotify-client-secret
+
+jwt:
+  # JWT secret은 BASE64 인코딩된 64+ bytes (HMAC SHA-256 요구사항). 테스트 전용 dummy.
+  secret: dGVzdC1qd3Qtc2VjcmV0LWtleS1mb3ItdW5pdC10ZXN0cy1tdXN0LWJlLWxvbmctZW5vdWdoLWZvci1ITUFD
+  # RefreshTokenHasher.@PostConstruct가 hasText 검증 — 누락 시 context startup 실패.
+  refresh-token-pepper: dummy-test-refresh-token-pepper
+  access-token-validity: 900000
+  refresh-token-validity: 1209600000
+  issuer: stagelog-test
+  audience: stagelog-api
+
+app:
+  cors:
+    # SecurityConfig가 @Value("${app.cors.allowed-origins}")로 강제 주입 — 누락 시 placeholder 해석 실패.
+    allowed-origins: http://localhost:5173
+  auth:
+    # OAuth2AuthenticationSuccess/FailureHandler가 @Value로 강제 주입.
+    frontend-redirect-uri: http://localhost:5173/oauth2/callback
+    # AuthCookieProperties는 nullable이라 누락돼도 startup은 OK지만 OAuth2 cookie path NPE 방어.
+    #
+    # domain은 의도적으로 비워둔다 (null). RefreshTokenCookieManager.buildCookie는
+    # StringUtils.hasText(domain)일 때만 Cookie의 Domain 속성을 세팅하므로 unset이면 host-only cookie가 발급된다.
+    # Domain=localhost는 RFC 6265상 public suffix 규정과 충돌 가능 — 일부 브라우저에서 거부.
+    cookie:
+      secure: false
+      same-site: Lax
+      # domain: (intentionally unset)
+  terms:
+    current-version: "2026-05-16"

@@ -5,7 +5,7 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface LoginAttemptRepository extends JpaRepository<LoginAttempt, Long> {
-    Optional<LoginAttempt> findByUserIdAndClientIp(String userId, String clientIp);
+    Optional<LoginAttempt> findByEmailAndClientIp(String email, String clientIp);
 
-    void deleteByUserIdAndClientIp(String userId, String clientIp);
+    void deleteByEmailAndClientIp(String email, String clientIp);
 }

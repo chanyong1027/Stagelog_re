@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { TrackRequest } from '../../types/review.types';
-import Button from '../common/Button';
 import { spotifyAPI, SpotifyTrack } from '../../api/spotify.api';
 
 interface SpotifyPlaylistBuilderProps {
@@ -67,12 +66,6 @@ const SpotifyPlaylistBuilder: React.FC<SpotifyPlaylistBuilderProps> = ({
     onTracksChange(tracks.filter((_, i) => i !== index));
   };
 
-  const formatDuration = (ms: number) => {
-    const minutes = Math.floor(ms / 60000);
-    const seconds = Math.floor((ms % 60000) / 1000);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
-
   return (
     <div className="bg-gradient-to-b from-gray-900 to-black rounded-2xl overflow-hidden">
       {/* 플레이리스트 헤더 */}
@@ -117,7 +110,7 @@ const SpotifyPlaylistBuilder: React.FC<SpotifyPlaylistBuilderProps> = ({
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
-                handleSearch(e as any);
+                handleSearch(e as unknown as React.FormEvent);
               }
             }}
             placeholder="곡, 아티스트 검색"

@@ -48,3 +48,22 @@ docs/
 refs/
 ### Claude ###
 claude/
+.claude/
+CLAUDE.md
+.AGENTS.md.bkup
+
+### Private project docs (개인 프로젝트 — 퍼블릭 레포 노출 안 함) ###
+_bmad-output/
+_bmad/
+code_review/
+Stagelog_re_backend/code_compare/
+
+.codex/
+
+# 배포 시크릿/로컬 오버라이드 (deploy/ — 루트 범위. backend 서브트리 .env는 Stagelog_re_backend/.gitignore가 커버)
+deploy/.env
+deploy/.env.backend
+**/docker-compose.override.yml
+
+# Claude Code 개인 로컬 설정 (커밋 금지)
+.claude/settings.local.json

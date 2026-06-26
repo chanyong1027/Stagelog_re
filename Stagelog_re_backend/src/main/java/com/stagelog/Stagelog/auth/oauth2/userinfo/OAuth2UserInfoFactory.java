@@ -1,8 +1,7 @@
 package com.stagelog.Stagelog.auth.oauth2.userinfo;
 
-import com.stagelog.Stagelog.global.exception.BusinessException;
-import com.stagelog.Stagelog.global.exception.ErrorCode;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 
 /**
@@ -24,16 +23,16 @@ public final class OAuth2UserInfoFactory {
     }
 
     /**
+     * 미지원 provider는 예외 대신 빈 Optional로 반환한다 (P1-2).
+     * 예외 변환은 호출자가 OAuth2AuthenticationException으로 수행해야 Spring Security가
+     * 실패 핸들러로 라우팅한다 — 여기서 BusinessException을 던지면 500이 떨어진다.
+     *
      * @param registrationId Spring Security OAuth2 Client의 registration ID (예: "kakao")
      * @param attributes     provider userinfo 엔드포인트 응답 attributes
-     * @throws BusinessException AUTH_OAUTH2_PROVIDER_ERROR — 지원하지 않는 provider
      */
-    public static OAuth2UserInfo of(String registrationId, Map<String, Object> attributes) {
+    public static Optional<OAuth2UserInfo> find(String registrationId, Map<String, Object> attributes) {
         Function<Map<String, Object>, OAuth2UserInfo> creator =
                 REGISTRY.get(registrationId.toLowerCase());
-        if (creator == null) {
-            throw new BusinessException(ErrorCode.AUTH_OAUTH2_PROVIDER_ERROR);
-        }
-        return creator.apply(attributes);
+        return Optional.ofNullable(creator).map(c -> c.apply(attributes));
     }
 }
