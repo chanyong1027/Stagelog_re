@@ -64,3 +64,6 @@ Stagelog_re_backend/code_compare/
 deploy/.env
 deploy/.env.backend
 **/docker-compose.override.yml
+
+# Claude Code 개인 로컬 설정 (커밋 금지)
+.claude/settings.local.json
