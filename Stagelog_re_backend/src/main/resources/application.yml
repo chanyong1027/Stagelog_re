@@ -39,16 +39,10 @@ spring:
       hibernate:
         format_sql: false
     show-sql: true
-  batch:
-    jdbc:
-      initialize-schema: never
-    job:
-      enabled: false
 
 logging:
   level:
     com.stagelog: INFO
-    org.springframework.batch: WARN
     org.hibernate: OFF
 
 external:

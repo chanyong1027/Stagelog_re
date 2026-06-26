@@ -41,19 +41,6 @@
         </rollingPolicy>
     </appender>
 
-    <appender name="BATCH_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_DIR}/batch.log</file>
-        <encoder>
-            <pattern>${LOG_PATTERN}</pattern>
-        </encoder>
-        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_DIR}/archive/batch.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
-            <maxFileSize>50MB</maxFileSize>
-            <maxHistory>30</maxHistory>
-            <totalSizeCap>2GB</totalSizeCap>
-        </rollingPolicy>
-    </appender>
-
     <appender name="ASYNC_APP" class="ch.qos.logback.classic.AsyncAppender">
         <queueSize>8192</queueSize>
         <discardingThreshold>0</discardingThreshold>
@@ -66,19 +53,6 @@
         <appender-ref ref="ERROR_FILE"/>
     </appender>
 
-    <appender name="ASYNC_BATCH" class="ch.qos.logback.classic.AsyncAppender">
-        <queueSize>4096</queueSize>
-        <discardingThreshold>0</discardingThreshold>
-        <appender-ref ref="BATCH_FILE"/>
-    </appender>
-
-    <logger name="com.stagelog.Stagelog.performance.batch" level="INFO" additivity="true">
-        <appender-ref ref="ASYNC_BATCH"/>
-    </logger>
-    <logger name="com.stagelog.Stagelog.performance.service.BatchService" level="INFO" additivity="true">
-        <appender-ref ref="ASYNC_BATCH"/>
-    </logger>
-    <logger name="org.springframework.batch" level="WARN"/>
     <logger name="org.hibernate" level="OFF"/>
 
     <root level="INFO">

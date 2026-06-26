@@ -34,10 +34,6 @@ public enum ErrorCode {
     PERFORMANCE_NOT_FOUND(HttpStatus.NOT_FOUND, "PERFORMANCE_001", "공연을 찾을 수 없습니다."),
     PERFORMANCE_DETAIL_NULL(HttpStatus.BAD_REQUEST, "PERFORMANCE_003", "공연 상세 정보가 null일 수 없습니다."),
 
-    // ===== Batch 관련 =====
-    BATCH_EXECUTION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "BATCH_001", "배치 실행 중 오류가 발생했습니다."),
-    BATCH_INTERRUPTED(HttpStatus.INTERNAL_SERVER_ERROR, "BATCH_002", "배치 처리가 중단되었습니다."),
-
     // ===== 공통 =====
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "COMMON_001", "잘못된 입력값입니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "COMMON_002", "서버 내부 오류가 발생했습니다."),
