@@ -77,8 +77,16 @@ public class JwtTokenProvider {
                     .getPayload();
             // principal 조립에 필수인 pid/role이 없으면 INVALID로 처리한다.
             // (서명은 유효하나 클레임이 누락된 토큰이 getAuthUser에서 NPE→500 나는 것을 401로 일관화)
-            if (claims.get("pid", String.class) == null || claims.get("role", String.class) == null) {
+            String pid = claims.get("pid", String.class);
+            if (pid == null || claims.get("role", String.class) == null) {
                 log.info("필수 클레임(pid/role) 누락 — 유효하지 않은 토큰으로 처리합니다.");
+                return TokenInspection.of(TokenValidationResult.INVALID);
+            }
+            // pid가 UUID 형식이 아니면 getAuthUser의 UUID.fromString이 500을 던지므로 여기서 401로 일관화.
+            try {
+                UUID.fromString(pid);
+            } catch (IllegalArgumentException e) {
+                log.info("pid 클레임이 UUID 형식이 아님 — 유효하지 않은 토큰으로 처리합니다.");
                 return TokenInspection.of(TokenValidationResult.INVALID);
             }
             return new TokenInspection(TokenValidationResult.VALID, claims);
